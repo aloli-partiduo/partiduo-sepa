@@ -1,0 +1,135 @@
+fr:
+  sepa:
+    module:
+      name: "Paiements SEPA"
+    permissions:
+      read: "Consulter les lots de paiements SEPA, les mandats et les fichiers"
+      prepare: "Composer, préparer, rouvrir et supprimer les lots de paiements SEPA"
+      approve: "Approuver les lots SEPA, produire le fichier, confirmer l'émission et passer les règlements"
+      admin: "Régler les paiements SEPA et gérer les mandats de prélèvement"
+    menu:
+      sepa: "Paiements SEPA"
+      sepa_batches: "Lots de paiements"
+      sepa_new: "Nouveau lot"
+      sepa_mandates: "Mandats de prélèvement"
+      sepa_settings: "Paiements SEPA"
+    kinds:
+      transfer: "Virements"
+      debit: "Prélèvements"
+    statuses:
+      draft: "En préparation"
+      prepared: "À approuver"
+      approved: "Approuvé, à émettre"
+      issued: "Émis"
+    approval_modes:
+      single: "Une personne"
+      dual: "Deux personnes"
+    settlement_modes:
+      post: "Passer les règlements à la confirmation de l'émission"
+      propose: "Proposer les règlements, à passer ensuite"
+    mandate_kinds:
+      recurrent: "Récurrent"
+      one_off: "Ponctuel"
+    mandate_statuses:
+      active: "Actif"
+      revoked: "Révoqué"
+      used: "Utilisé"
+    sequences:
+      FRST: "Premier (FRST)"
+      RCUR: "Récurrent (RCUR)"
+      OOFF: "Ponctuel (OOFF)"
+    settlements:
+      none: "Règlement à passer"
+      posted: "Règlement passé"
+      elsewhere: "Réglé ailleurs"
+    errors:
+      choice:
+        invalid: "Valeur non admise : %{value}."
+      ledger:
+        blank: "Choisissez un journal financier."
+        invalid: "Ce journal n'est pas un journal financier qui vous est ouvert."
+        currency: "Le journal est tenu en %{currency} : les paiements SEPA sont en euros."
+        iban_blank: "La fiche Banque du journal %{code} n'a pas d'IBAN."
+        iban_invalid: "L'IBAN de la fiche Banque du journal %{code} est invalide."
+        bic_invalid: "Le BIC de la fiche Banque du journal %{code} est invalide."
+      company:
+        name_blank: "Renseignez la raison sociale du dossier : elle nomme le donneur d'ordre."
+      batch:
+        debit_household: "Un dossier foyer n'émet pas de prélèvements."
+        label:
+          too_long: "Le libellé ne doit pas dépasser %{max} caractères."
+        empty: "Le lot ne contient aucun paiement."
+        too_many: "Un lot ne peut dépasser %{max} paiements."
+        kind_frozen: "Le genre d'un lot qui contient des paiements ne change plus."
+        not_draft: "Ce lot n'est plus en préparation : rouvrez-le pour le modifier."
+        not_deletable: "Un lot approuvé se rouvre avant d'être supprimé ; un lot émis est conservé."
+        not_reopenable: "Seul un lot préparé ou approuvé, non émis, se rouvre."
+      date:
+        past: "La date d'exécution ne peut pas être passée."
+        too_soon: "Un prélèvement se présente au plus tôt le jour ouvré suivant."
+        not_business_day: "Ce jour n'est pas ouvré pour les paiements SEPA ; prochain jour ouvré : %{next}."
+        too_far: "La date d'exécution est à plus d'un an."
+      settings:
+        ics_blank: "Renseignez l'identifiant créancier SEPA (ICS) dans les réglages."
+        ics_invalid: "L'identifiant créancier SEPA (ICS) est invalide."
+      iban:
+        blank: "Indiquez l'IBAN."
+        invalid: "IBAN invalide (pays, longueur ou clé)."
+      bic:
+        invalid: "BIC invalide (8 ou 11 caractères)."
+      item:
+        none_selected: "Cochez au moins une écriture."
+        line_unavailable: "L'écriture %{id} n'est plus ouverte ou est déjà dans un lot."
+        candidate_iban_blank: "La fiche %{code} n'a pas d'IBAN (pièce %{receipt})."
+        candidate_iban_invalid: "L'IBAN de la fiche %{code} est invalide (pièce %{receipt})."
+        card:
+          blank: "Indiquez la fiche du tiers."
+          unknown: "Aucune fiche n'a le code %{code}."
+          frozen: "Le tiers d'un paiement tiré d'une écriture ne change pas."
+        mandate:
+          none: "La fiche %{code} n'a pas de mandat de prélèvement actif."
+        amount:
+          positive: "Le montant doit être positif."
+          too_large: "Le montant dépasse le plafond d'un paiement SEPA."
+          cents: "Le montant s'arrête au centime."
+          over_open: "Le montant dépasse ce qui reste ouvert (%{amount})."
+        remittance:
+          too_long: "La communication ne doit pas dépasser %{max} caractères."
+        amount_invalid: "Paiement n° %{position} (%{name}) : montant invalide."
+        name:
+          blank: "Paiement n° %{position} : le nom du tiers est vide."
+        charset: "Paiement n° %{position} (%{name}) : caractères hors du jeu SEPA."
+        line_closed: "Paiement n° %{position} (%{name}) : la pièce %{receipt} n'est plus ouverte (réglée ou lettrée entre-temps)."
+        iban_blank: "Paiement n° %{position} (%{name}) : IBAN absent."
+        iban_invalid: "Paiement n° %{position} (%{name}) : IBAN invalide."
+        bic_invalid: "Paiement n° %{position} (%{name}) : BIC invalide."
+        mandate_inactive: "Paiement n° %{position} (%{name}) : le mandat n'est plus actif."
+        mandate_not_signed: "Paiement n° %{position} (%{name}) : le mandat est signé après la date d'échéance."
+        mandate_expired: "Paiement n° %{position} (%{name}) : mandat expiré depuis le %{date} (36 mois sans prélèvement)."
+      mandate:
+        card:
+          blank: "Indiquez la fiche du client."
+          unknown: "Aucune fiche n'a le code %{code}."
+          frozen: "Le client d'un mandat déjà prélevé ne change pas."
+        rum:
+          invalid: "La RUM ne compte que 35 caractères du jeu SEPA, sans « / » en tête, en fin ni doublé."
+          taken: "Un mandat porte déjà cette RUM."
+          frozen: "La RUM d'un mandat déjà prélevé ne change pas."
+        signed_on:
+          future: "La date de signature ne peut pas être future."
+        debtor_name:
+          blank: "Indiquez le nom du débiteur."
+        kind:
+          frozen: "La nature d'un mandat déjà prélevé ne change pas."
+        not_active: "Ce mandat n'est plus actif."
+        in_use: "Ce mandat a servi à un paiement : révoquez-le plutôt."
+      approval:
+        not_prepared: "Seul un lot préparé s'approuve."
+        same_person: "Validation à deux personnes : le lot doit être approuvé par une autre personne que celle qui l'a préparé."
+      file:
+        invalid: "Le fichier produit n'est pas conforme : %{detail}."
+      issue:
+        not_approved: "Seul un lot approuvé se confirme émis."
+        future: "La date d'émission ne peut pas être future."
+      settlement:
+        not_issued: "Les règlements se passent une fois le lot émis."

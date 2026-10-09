@@ -1,0 +1,108 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Un lot de paiements SEPA (D-SEPA-003, D-SEPA-005) : faits (genre, journal, date, total, statut, fichier), contrôle du lot en préparation, paiements (_item.html, corrigés en HTMX), écritures ouvertes à cocher pour les ajouter (formulaire sepa-add), saisie d'un paiement, confirmation de l'émission d'un lot approuvé. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block scripts %}<link rel="stylesheet" href="{% asset 'sepa/css/sepa.css' %}">{% endblock scripts %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% endblock heading %}
+{% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
+{% block content %}
+{% if error %}<div class="notification is-danger is-light pd-alert" role="alert" id="sepa-error">{% include "ui/_icon.html" with name="triangle-alert" %}<div><p>{{ error }}</p></div></div>{% endif %}
+<section class="pd-panel" aria-labelledby="sepa-facts-title">
+  <header><h2 id="sepa-facts-title">{{ batch.kind }}{% if batch.label %} · {{ batch.label }}{% endif %}</h2><span class="tag {{ batch.status_class }} is-light" data-sepa-status>{{ batch.status }}</span></header>
+  <div class="pd-body">
+    <dl class="sepa-facts">
+      <div><dt>{% translate "sepa_ui.batches.ledger" %}</dt><dd class="pd-mono">{{ batch.ledger }}</dd></div>
+      <div><dt>{% if debit %}{% translate "sepa_ui.batch.collection_date" %}{% else %}{% translate "sepa_ui.batches.requested_on" %}{% endif %}</dt><dd>{{ batch.requested_on }}</dd></div>
+      <div><dt>{% translate "sepa_ui.batches.count" %}</dt><dd>{{ batch.count }}</dd></div>
+      <div><dt>{% translate "sepa_ui.batches.total" %}</dt><dd class="pd-mono" data-sepa-total>{{ batch.total }}</dd></div>
+      <div><dt>{% translate "sepa_ui.batch.format" %}</dt><dd class="pd-mono">{{ batch.schema }}</dd></div>
+      <div><dt>{% translate "sepa_ui.batches.batch_booking" %}</dt><dd>{{ batch.booking }}</dd></div>
+      {% if batch.message_id %}<div><dt>{% translate "sepa_ui.batch.message_id" %}</dt><dd class="pd-mono">{{ batch.message_id }}</dd></div>{% endif %}
+      {% if batch.approval_mode %}<div><dt>{% translate "sepa_ui.batch.approval" %}</dt><dd>{{ batch.approval_mode }}</dd></div>{% endif %}
+      {% if batch.issued_on %}<div><dt>{% translate "sepa_ui.batch.issued_on" %}</dt><dd>{{ batch.issued_on }}</dd></div>{% endif %}
+    </dl>
+    {% if awaiting_other %}<p class="help mt-3" data-sepa-awaiting>{% translate "sepa_ui.batch.awaiting_other" %}</p>{% endif %}
+  </div>
+</section>
+{% if draft %}
+<section class="pd-panel" aria-labelledby="sepa-check-title">
+  <header><h2 id="sepa-check-title">{% translate "sepa_ui.batch.check" %}</h2></header>
+  <div class="pd-body" role="status">
+    {% if problems %}<ul class="sepa-problems" data-sepa-problems>{% for problem in problems %}<li>{{ problem.text }}</li>{% endfor %}</ul>
+    {% else %}<p data-sepa-ready>{% translate "sepa_ui.batch.ready" %}</p>{% endif %}
+  </div>
+</section>
+{% endif %}
+{% if can_issue %}
+<section class="pd-panel" aria-labelledby="sepa-issue-title">
+  <header><h2 id="sepa-issue-title">{% translate "sepa_ui.batch.issue" %}</h2></header>
+  <div class="pd-body">
+    <p class="help mb-3">{% translate "sepa_ui.batch.issue_help" %} {{ settle_mode }}.</p>
+    <form method="post" action="{{ issue_url }}" class="pd-form" novalidate data-sepa-issue>
+      {% csrf_input %}
+      <div class="field"><label class="label" for="sepa-issued-on">{% translate "sepa_ui.batch.issued_on" %}</label>
+        <input class="input" type="date" id="sepa-issued-on" name="issued_on" value="{{ today }}" required></div>
+      <div class="pd-form-actions"><button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="send" %}<span>{% translate "sepa_ui.batch.issue_submit" %}</span></button></div>
+    </form>
+  </div>
+</section>
+{% endif %}
+<section class="pd-panel" aria-labelledby="sepa-items-title" id="sepa-items">
+  <header><h2 id="sepa-items-title">{% translate "sepa_ui.items.title" %}</h2></header>
+  {% if items %}
+  <div class="pd-scroll"><table class="table is-fullwidth is-narrow sepa-table" data-sepa-items>
+    <caption class="is-sr-only">{% translate "sepa_ui.items.title" %}</caption>
+    <thead><tr><th scope="col">#</th><th scope="col">{% translate "sepa_ui.items.party" %}</th><th scope="col">{% translate "sepa_ui.items.receipt" %}</th><th scope="col">{% translate "sepa_ui.items.remittance" %}</th><th scope="col" class="amount">{% translate "sepa_ui.items.amount" %}</th>{% if batch_issued %}<th scope="col">{% translate "sepa_ui.items.settlement" %}</th>{% endif %}</tr></thead>
+    <tbody>{% for item in items %}{% include "sepa/_item.html" %}{% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <div class="pd-body"><p class="pd-muted" data-sepa-empty>{% translate "sepa_ui.items.none" %}</p></div>
+  {% endif %}
+</section>
+{% if can_prepare %}
+<section class="pd-panel" aria-labelledby="sepa-candidates-title">
+  <header><h2 id="sepa-candidates-title">{% if debit %}{% translate "sepa_ui.candidates.title_debit" %}{% else %}{% translate "sepa_ui.candidates.title_transfer" %}{% endif %}</h2></header>
+  {% if candidates %}
+  <form method="post" action="{{ add_url }}" id="sepa-add" data-sepa-add>
+    {% csrf_input %}
+    <div class="pd-scroll"><table class="table is-fullwidth is-narrow sepa-table" data-sepa-candidates>
+      <caption class="is-sr-only">{% translate "sepa_ui.candidates.title_transfer" %}</caption>
+      <thead><tr><th scope="col"><span class="is-sr-only">{% translate "sepa_ui.candidates.select" %}</span></th><th scope="col">{% translate "sepa_ui.items.party" %}</th><th scope="col">{% translate "sepa_ui.items.receipt" %}</th><th scope="col">{% translate "sepa_ui.candidates.due" %}</th><th scope="col">IBAN</th><th scope="col" class="amount">{% translate "sepa_ui.items.amount" %}</th></tr></thead>
+      <tbody>{% for candidate in candidates %}<tr data-sepa-candidate="{{ candidate.line_id }}">
+        <td>{% if candidate.problem %}{% else %}<input type="checkbox" name="ids" value="{{ candidate.line_id }}" id="sepa-candidate-{{ candidate.line_id }}" aria-label="{% translate 'sepa_ui.candidates.select' %} {{ candidate.receipt }}">{% endif %}</td>
+        <td>{{ candidate.card }}<br><small class="pd-muted">{{ candidate.label }}</small></td>
+        <td class="pd-mono">{{ candidate.receipt }}<br><small class="pd-muted">{{ candidate.date }}</small></td>
+        <td>{% if candidate.due %}{{ candidate.due }}{% endif %}</td>
+        <td class="pd-mono">{% if candidate.problem %}<span class="tag is-warning is-light">{{ candidate.problem }}</span>{% else %}{{ candidate.iban }}{% endif %}</td>
+        <td class="amount pd-mono">{{ candidate.amount }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="pd-body"><button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "sepa_ui.candidates.add" %}</span></button></div>
+  </form>
+  {% else %}
+  <div class="pd-body"><p class="pd-muted" data-sepa-no-candidates>{% translate "sepa_ui.candidates.none" %}</p></div>
+  {% endif %}
+</section>
+<section class="pd-panel" aria-labelledby="sepa-manual-title">
+  <header><h2 id="sepa-manual-title">{% translate "sepa_ui.manual.title" %}</h2></header>
+  <div class="pd-body">
+    <p class="help mb-3">{% if debit %}{% translate "sepa_ui.manual.help_debit" %}{% else %}{% translate "sepa_ui.manual.help_transfer" %}{% endif %}</p>
+    <form method="post" action="{{ item_new_url }}" class="pd-form" novalidate data-sepa-manual>
+      {% csrf_input %}
+      <div class="sepa-manual">
+        <div class="field"><label class="label" for="sepa-manual-card">{% translate "sepa_ui.manual.card" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+          <input class="input pd-mono" type="text" id="sepa-manual-card" name="card_code" value="{{ manual.card_code }}" list="sepa-cards" maxlength="64" autocomplete="off" required></div>
+        <div class="field"><label class="label" for="sepa-manual-amount">{% translate "sepa_ui.items.amount" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+          <input class="input pd-mono" type="text" inputmode="decimal" id="sepa-manual-amount" name="amount" value="{{ manual.amount }}" required></div>
+        <div class="field"><label class="label" for="sepa-manual-remittance">{% translate "sepa_ui.items.remittance" %}</label>
+          <input class="input" type="text" id="sepa-manual-remittance" name="remittance" value="{{ manual.remittance }}" maxlength="140"></div>
+        {% if debit %}{% else %}<div class="field"><label class="label" for="sepa-manual-iban">IBAN</label>
+          <input class="input pd-mono" type="text" id="sepa-manual-iban" name="iban" value="{{ manual.iban }}" maxlength="42" placeholder="{% translate 'sepa_ui.manual.from_card' %}"></div>
+        <div class="field"><label class="label" for="sepa-manual-bic">BIC</label>
+          <input class="input pd-mono" type="text" id="sepa-manual-bic" name="bic" value="{{ manual.bic }}" maxlength="11"></div>{% endif %}
+      </div>
+      <div class="pd-form-actions"><button class="button pd-touch" type="submit">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "sepa_ui.manual.submit" %}</span></button></div>
+    </form>
+  </div>
+</section>
+<datalist id="sepa-cards">{% for card in cards %}<option value="{{ card.value }}">{{ card.label }}</option>{% endfor %}</datalist>
+{% endif %}
+{% endblock content %}

@@ -1,0 +1,135 @@
+nl:
+  sepa:
+    module:
+      name: "SEPA-betalingen"
+    permissions:
+      read: "SEPA-betalingsbatches, mandaten en bestanden raadplegen"
+      prepare: "SEPA-betalingsbatches samenstellen, voorbereiden, heropenen en verwijderen"
+      approve: "SEPA-batches goedkeuren, het bestand aanmaken, de verzending bevestigen en de betalingen boeken"
+      admin: "SEPA-betalingen instellen en domiciliëringsmandaten beheren"
+    menu:
+      sepa: "SEPA-betalingen"
+      sepa_batches: "Betalingsbatches"
+      sepa_new: "Nieuwe batch"
+      sepa_mandates: "Domiciliëringsmandaten"
+      sepa_settings: "SEPA-betalingen"
+    kinds:
+      transfer: "Overschrijvingen"
+      debit: "Domiciliëringen"
+    statuses:
+      draft: "In voorbereiding"
+      prepared: "Goed te keuren"
+      approved: "Goedgekeurd, te verzenden"
+      issued: "Verzonden"
+    approval_modes:
+      single: "Eén persoon"
+      dual: "Twee personen"
+    settlement_modes:
+      post: "Betalingen boeken bij de bevestiging van de verzending"
+      propose: "Betalingen voorstellen, later te boeken"
+    mandate_kinds:
+      recurrent: "Terugkerend"
+      one_off: "Eenmalig"
+    mandate_statuses:
+      active: "Actief"
+      revoked: "Herroepen"
+      used: "Gebruikt"
+    sequences:
+      FRST: "Eerste (FRST)"
+      RCUR: "Terugkerend (RCUR)"
+      OOFF: "Eenmalig (OOFF)"
+    settlements:
+      none: "Betaling te boeken"
+      posted: "Betaling geboekt"
+      elsewhere: "Elders vereffend"
+    errors:
+      choice:
+        invalid: "Waarde niet toegestaan: %{value}."
+      ledger:
+        blank: "Kies een financieel dagboek."
+        invalid: "Dit dagboek is geen financieel dagboek dat voor u openstaat."
+        currency: "Het dagboek wordt gevoerd in %{currency}: SEPA-betalingen zijn in euro."
+        iban_blank: "De bankfiche van dagboek %{code} heeft geen IBAN."
+        iban_invalid: "Het IBAN van de bankfiche van dagboek %{code} is ongeldig."
+        bic_invalid: "De BIC van de bankfiche van dagboek %{code} is ongeldig."
+      company:
+        name_blank: "Vul de firmanaam van het dossier in: die benoemt de opdrachtgever."
+      batch:
+        debit_household: "Een gezinsdossier verstuurt geen domiciliëringen."
+        label:
+          too_long: "De omschrijving mag niet langer zijn dan %{max} tekens."
+        empty: "De batch bevat geen enkele betaling."
+        too_many: "Een batch mag niet meer dan %{max} betalingen bevatten."
+        kind_frozen: "Het soort van een batch met betalingen verandert niet meer."
+        not_draft: "Deze batch is niet meer in voorbereiding: heropen hem om hem te wijzigen."
+        not_deletable: "Een goedgekeurde batch wordt eerst heropend; een verzonden batch blijft bewaard."
+        not_reopenable: "Enkel een voorbereide of goedgekeurde, niet verzonden batch kan worden heropend."
+      date:
+        past: "De uitvoeringsdatum mag niet in het verleden liggen."
+        too_soon: "Een domiciliëring wordt ten vroegste op de volgende werkdag aangeboden."
+        not_business_day: "Deze dag is geen werkdag voor SEPA-betalingen; volgende werkdag: %{next}."
+        too_far: "De uitvoeringsdatum ligt meer dan een jaar verder."
+      settings:
+        ics_blank: "Vul de SEPA-schuldeisersidentificatie (CI) in bij de instellingen."
+        ics_invalid: "De SEPA-schuldeisersidentificatie (CI) is ongeldig."
+      iban:
+        blank: "Vul het IBAN in."
+        invalid: "Ongeldig IBAN (land, lengte of controlegetal)."
+      bic:
+        invalid: "Ongeldige BIC (8 of 11 tekens)."
+      item:
+        none_selected: "Vink minstens één boeking aan."
+        line_unavailable: "Boeking %{id} staat niet meer open of zit al in een batch."
+        candidate_iban_blank: "Fiche %{code} heeft geen IBAN (stuk %{receipt})."
+        candidate_iban_invalid: "Het IBAN van fiche %{code} is ongeldig (stuk %{receipt})."
+        card:
+          blank: "Vul de fiche van de derde in."
+          unknown: "Geen enkele fiche heeft de code %{code}."
+          frozen: "De derde van een betaling uit een boeking verandert niet."
+        mandate:
+          none: "Fiche %{code} heeft geen actief domiciliëringsmandaat."
+        amount:
+          positive: "Het bedrag moet positief zijn."
+          too_large: "Het bedrag overschrijdt het plafond van een SEPA-betaling."
+          cents: "Het bedrag stopt bij de cent."
+          over_open: "Het bedrag overschrijdt wat nog openstaat (%{amount})."
+        remittance:
+          too_long: "De mededeling mag niet langer zijn dan %{max} tekens."
+        amount_invalid: "Betaling nr. %{position} (%{name}): ongeldig bedrag."
+        name:
+          blank: "Betaling nr. %{position}: de naam van de derde is leeg."
+        charset: "Betaling nr. %{position} (%{name}): tekens buiten de SEPA-tekenset."
+        line_closed: "Betaling nr. %{position} (%{name}): stuk %{receipt} staat niet meer open (intussen vereffend of afgepunt)."
+        iban_blank: "Betaling nr. %{position} (%{name}): IBAN ontbreekt."
+        iban_invalid: "Betaling nr. %{position} (%{name}): ongeldig IBAN."
+        bic_invalid: "Betaling nr. %{position} (%{name}): ongeldige BIC."
+        mandate_inactive: "Betaling nr. %{position} (%{name}): het mandaat is niet meer actief."
+        mandate_not_signed: "Betaling nr. %{position} (%{name}): het mandaat is ondertekend na de vervaldatum."
+        mandate_expired: "Betaling nr. %{position} (%{name}): mandaat vervallen sinds %{date} (36 maanden zonder inning)."
+      mandate:
+        card:
+          blank: "Vul de fiche van de klant in."
+          unknown: "Geen enkele fiche heeft de code %{code}."
+          frozen: "De klant van een al geïnd mandaat verandert niet."
+        rum:
+          invalid: "De mandaatreferentie telt hoogstens 35 tekens van de SEPA-tekenset, zonder „/” vooraan, achteraan of dubbel."
+          taken: "Een mandaat heeft al deze referentie."
+          frozen: "De referentie van een al geïnd mandaat verandert niet."
+        signed_on:
+          future: "De ondertekeningsdatum mag niet in de toekomst liggen."
+        debtor_name:
+          blank: "Vul de naam van de schuldenaar in."
+        kind:
+          frozen: "Het soort van een al geïnd mandaat verandert niet."
+        not_active: "Dit mandaat is niet meer actief."
+        in_use: "Dit mandaat werd voor een betaling gebruikt: herroep het liever."
+      approval:
+        not_prepared: "Enkel een voorbereide batch kan worden goedgekeurd."
+        same_person: "Goedkeuring door twee personen: de batch moet worden goedgekeurd door iemand anders dan wie hem voorbereidde."
+      file:
+        invalid: "Het aangemaakte bestand is niet conform: %{detail}."
+      issue:
+        not_approved: "Enkel een goedgekeurde batch kan als verzonden worden bevestigd."
+        future: "De verzenddatum mag niet in de toekomst liggen."
+      settlement:
+        not_issued: "Betalingen worden geboekt zodra de batch verzonden is."

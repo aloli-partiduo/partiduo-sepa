@@ -1,0 +1,311 @@
+= partiduo-sepa — décisions
+:toc: left
+:toc-title: Table des matières
+:icons: font
+
+Décisions prises pendant le portage de l'extension `SEPA`, quand un point
+n'était pas tranché par les ADR (contexte, choix, alternative écartée),
+puis amendements proposés au contrat du cœur. Les ADR ne sont jamais
+modifiés : un écart ou un complément y est proposé ici.
+
+Spécification : ADR-003 (contrat d'extension ; tableau « Sort des
+extensions amont » : `noalyss_xmlpayment` → `partiduo-sepa`), avec ADR-005
+(interface) et ADR-006 (Comptabilité). Source fonctionnelle : l'extension
+« Virements SEPA » de l'application d'origine (legacy, code XMLPY), dont on
+porte les fonctions et non le code.
+
+== Décisions
+
+=== D-SEPA-001 — pain.001.001.09 et pain.008.001.08 (10 octobre 2026)
+
+*Contexte.* L'application d'origine produisait un `pain.001.001.03`
+(version ISO 20022 de 2009). Les guides de mise en œuvre client-banque de
+l'EPC (SCT C2PSP, SDD Core C2PSP) reposent depuis le rulebook de novembre
+2023 sur la version 2019 des messages ; le rulebook SCT 2025 (version 1.1,
+en vigueur depuis le 5 octobre 2025) n'admet plus l'adresse non structurée
+à partir du *15 novembre 2026* (date avancée du 22 au 15 novembre par
+l'EPC, avis du 6 octobre 2025). Des banques annoncent le refus du
+`pain.001.001.03` à cette date. Vérification faite le 10 octobre 2026 sur
+les publications de l'EPC et des avis bancaires ; la brochure du CFONB
+cite encore le guide français du `pain.001.001.03` (version 2.5), et la
+recherche n'a pas trouvé le guide Febelfin lui-même : la version exacte
+admise par *chaque* banque reste à confirmer auprès d'elle (geste
+utilisateur).
+
+*Choix.*
+
+* Virements : `pain.001.001.09` — `ReqdExctnDt/Dt`, agents en `BICFI`, une
+  information de paiement par lot, `SvcLvl/Cd = SEPA`, `ChrgBr = SLEV`,
+  `BtchBookg` selon le réglage ou le lot.
+* Prélèvements : `pain.008.001.08`, SDD Core (`LclInstrm/Cd = CORE`), une
+  information de paiement par séquence (FRST, RCUR, OOFF), identifiant
+  créancier dans `CdtrSchmeId` (`Prtry = SEPA`).
+* UTF-8, jeu de caractères restreint (D-SEPA-006) ; BIC facultatif
+  (« IBAN seul » de l'EPC) : l'agent du donneur d'ordre sans BIC devient
+  `Othr/Id = NOTPROVIDED`, l'agent du bénéficiaire est omis.
+* Adresse d'un tiers : *hybride* (code postal, ville et pays structurés,
+  deux lignes libres au plus), seulement si sa fiche a une ville et un
+  pays ; jamais d'adresse non structurée. L'adresse reste facultative dans
+  l'espace SEPA.
+* Montants écrits depuis `BigDecimal`, au centime, point décimal ; totaux
+  de contrôle (`NbOfTxs`, `CtrlSum`) dans l'en-tête et chaque information de
+  paiement.
+
+*Alternative écartée.* Le `pain.001.001.03` de l'application d'origine :
+refusé par des banques après le 15 novembre 2026, sans adresse hybride.
+
+=== D-SEPA-002 — Une extension commune, sans incompatibilité avec PERSO (10 octobre 2026)
+
+*Contexte.* `partiduo-amortis` déclare `incompatible_with "PERSO"` (un foyer
+n'amortit rien). La question se pose ici.
+
+*Choix.* Aucune incompatibilité. Un foyer peut grouper ses virements
+(loyer, artisans, factures reçues saisies dans son journal) et plusieurs
+banques acceptent un fichier SEPA d'un particulier ; rien dans les
+virements ne suppose une entreprise. Les *prélèvements*, eux, exigent un
+identifiant créancier SEPA qu'un foyer n'obtient pas : la création d'un
+lot de prélèvements est refusée dans un dossier foyer
+(`batch.debit_household`, lu dans `Partiduo::Api::Core.settings`).
+
+*Alternative écartée.* `incompatible_with "PERSO"` : priverait les foyers
+d'une fonction utile pour une seule restriction, que le contrat exprime
+déjà.
+
+=== D-SEPA-003 — Lots, paiements, liens vers le cœur sans clé étrangère (10 octobre 2026)
+
+*Choix.* Tables `sepa_setting`, `sepa_mandate`, `sepa_batch`, `sepa_item`.
+Un lot a un genre (`transfer`, `debit`), un journal financier (le compte
+donneur d'ordre ou créancier est celui de sa fiche Banque, comme le compte
+bancaire choisi par liste dans l'application d'origine), une date
+d'exécution ou d'échéance, un libellé. Un paiement a sa fiche, son nom, son
+IBAN, son BIC, son montant, sa communication, sa référence de bout en
+bout et, s'il en vient, l'écriture ouverte qu'il règle. Les identifiants du
+cœur (journal, écriture, ligne d'écriture, pièce jointe, fiche) sont relus
+par le contrat, sans clé étrangère (même règle que D-BKI-003) ; les liens
+internes ont leurs clés étrangères ; domaines contrôlés en base. Le fichier
+produit est conservé par `Partiduo::Api::Core.store_attachment` en
+`application/xml` (type déjà admis par le socle).
+
+=== D-SEPA-004 — Droits de l'extension et du cœur (10 octobre 2026)
+
+*Choix.* `sepa.read` (lots, mandats, fichiers), `sepa.prepare` (composer,
+préparer, rouvrir, supprimer), `sepa.approve` (approuver et produire le
+fichier, confirmer l'émission, passer les règlements), `sepa.admin`
+(réglages et mandats : un mandat porte l'IBAN d'un client). Le contrat du
+cœur exige ses propres droits, avec l'acteur réel : `accounting.entry.read`
+et `cards.card.read` pour lire les écritures ouvertes,
+`core.attachment.write` pour conserver le fichier, `accounting.entry.post`
+et l'écriture dans le journal pour passer les règlements. Les lots ne sont
+visibles que dans les journaux financiers visibles de l'acteur. La fiche
+Banque du journal et les adresses des tiers sont relues avec l'acteur
+système, une fois le journal contrôlé avec les droits de l'acteur.
+
+=== D-SEPA-005 — Préparer, approuver : double validation facultative (10 octobre 2026)
+
+*Contexte.* Le cœur n'a pas de réglage de double validation pour les
+dossiers ; l'administration du parc en a un, par structure, pour ses
+opérations sensibles (`admin_firm.dual_approval`, modes `single` et
+`dual`, DECISIONS D-VAL2-001 à D-VAL2-008 de `partiduo-app`).
+
+*Choix.* Réglage du dossier `approval_mode`, mêmes codes et même sens :
+`single` (défaut) — la personne qui a préparé peut approuver si elle a
+`sepa.approve` ; `dual` — l'approbation est refusée à celle qui a préparé
+(`approval.same_person`), et l'écran ne lui propose pas le bouton. Le mode
+est lu à l'approbation (comme D-VAL2-006 : il n'est pas figé à la
+préparation) et inscrit sur le lot (`approval_mode`) ; la base refuse un
+lot approuvé en mode `dual` par la personne qui l'a préparé.
+
+Cycle : `draft` → `prepare` (contrôle complet, lot figé, séquences des
+prélèvements arrêtées) → `approve` (nouveau contrôle, fichier produit,
+contrôlé, conservé) → `confirm_issue` (émission confirmée, lot définitif).
+`reopen` ramène en préparation un lot préparé ou approuvé ; le fichier d'un
+lot approuvé, qui n'a pas été déposé, est alors retiré des pièces jointes.
+
+*Alternative écartée.* Une ré-authentification forte avant l'approbation
+à une personne (protection de repli de D-VAL2-004) : le contrat ne donne pas
+à une extension l'heure de la dernière authentification forte (amendement
+A-SEPA-3).
+
+=== D-SEPA-006 — IBAN, BIC, ICS, références, jeu de caractères (10 octobre 2026)
+
+*Choix.* Module interne `Codes` : IBAN (forme compacte, longueur du pays de
+l'espace SEPA, clé modulo 97 calculée chiffre à chiffre), BIC (8 ou 11),
+ICS (clé modulo 97 calculée sur l'identifiant national suivi du pays et de
+`00`, code d'activité exclu), référence RF (ISO 11649) et communication
+structurée belge (`+++090/9337/55493+++`), écrites en `Strd` (`SCOR`,
+émetteur `ISO` ou `BBA`) ; texte libre en `Ustrd`. Module `Charset` :
+lettres sans accent, chiffres, espace et `/ - ? : ( ) . , ' +` ; les textes
+sont translittérés (décomposition Unicode, ligatures `œ`, `æ`, `ß`, signes
+`&` → `+`, guillemets → apostrophe), les identifiants (référence de bout en
+bout, RUM, identifiant du message) doivent y être conformes, sans `/` en
+tête ou en fin ni `//`. Même algorithme et même forme masquée que le module
+`Iban` de `partiduo-urssaf`, qu'on ne modifie pas et dont on ne dépend pas
+(les extensions ne partagent pas de code hors du contrat).
+
+=== D-SEPA-007 — Mandats de prélèvement SDD Core (10 octobre 2026)
+
+*Contexte.* L'application d'origine ne faisait que des virements. Les
+prélèvements sont ajoutés parce qu'ils partagent toute la mécanique (lots,
+contrôles, fichier, règlements) et que le format est simple.
+`partiduo-urssaf` gère des mandats SEPA où le dossier est *débiteur* : il
+n'en garde que l'IBAN masqué, l'URSSAF prélevant elle-même.
+
+*Choix.* Ici le dossier est *créancier* : l'IBAN complet du débiteur est
+indispensable au fichier ; il est conservé et n'est montré masqué que dans
+la liste des mandats (forme de `partiduo-urssaf`). Un mandat : fiche du
+client, RUM (35 caractères du jeu SEPA, unique sans casse ; proposée
+`<quick code>-<AAAAMMJJ>-<rang>`), date de signature (pas future), nom,
+IBAN, BIC facultatif, nature `recurrent` ou `one_off`, statut `active`,
+`revoked` (date), `used` (ponctuel prélevé).
+
+* Séquence : `OOFF` pour un mandat ponctuel, `FRST` tant qu'aucun
+  prélèvement n'a été émis, `RCUR` ensuite (le rulebook n'impose plus
+  `FRST` depuis 2016 mais l'admet ; `FNAL` n'est pas employé). Elle est
+  figée à la préparation et le compteur avance à la confirmation de
+  l'émission.
+* Expiration : un mandat récurrent sans prélèvement pendant 36 mois est
+  refusé à la préparation (`item.mandate_expired`).
+* Amendement : un IBAN changé après un premier prélèvement est signalé au
+  suivant (`AmdmntInd = true`, `OrgnlDbtrAcct`), puis effacé ; la RUM, le
+  client et la nature d'un mandat prélevé ne changent plus.
+* Un mandat qui a servi ne se supprime pas : il se révoque.
+
+=== D-SEPA-008 — Dates d'exécution : jours ouvrés TARGET (10 octobre 2026)
+
+*Choix.* La date d'exécution (virement) ou d'échéance (prélèvement) est un
+jour ouvré TARGET (hors week-end, 1er janvier, Vendredi saint, lundi de
+Pâques, 1er mai, 25 et 26 décembre ; Pâques calculé), pas dans le passé,
+à moins d'un an ; un prélèvement SDD Core se présente au plus tôt le jour
+ouvré suivant (délai D-1 du rulebook depuis 2016). Le prochain jour ouvré
+est proposé dans le message. L'application d'origine ramenait une date
+passée au jour même, en silence.
+
+=== D-SEPA-009 — Lots tirés des écritures ouvertes (10 octobre 2026)
+
+*Choix.* Les écritures proposées sont les lignes non lettrées du relevé de
+chaque fiche (`Partiduo::Api::Accounting.account_statement`,
+`unmatched_only`) : au crédit pour un fournisseur (ce que l'on doit), au
+débit pour un client sous mandat actif. Un lettrage partiel n'est pas
+proposé (son reliquat se saisit à la main). Le montant est le montant
+ouvert *exact* ; il peut être réduit (paiement partiel), jamais dépassé
+(`item.amount.over_open`) ; un montant de plus de deux décimales est
+refusé. Une ligne n'est réglée que par un seul paiement vivant (index
+unique partiel). Communication proposée : le numéro de la facture reçue
+(`received_invoice_for_entry`), sinon la pièce et le libellé. Référence de
+bout en bout `PD<lot>-<paiement>-<pièce>`. Un avoir fournisseur n'est pas
+imputé d'office : on réduit le montant à la main. Avant de préparer et
+d'approuver, chaque écriture est relue : une facture réglée entre-temps
+bloque le lot (`item.line_closed`).
+
+L'application d'origine copiait les mêmes informations d'une opération
+(compte de la fiche, montant, communication) ; la copie depuis l'extension
+des documents (NDER) n'est pas portée ici (amendement A-SEPA-4).
+
+=== D-SEPA-010 — Règlements par le contrat, jamais en double (10 octobre 2026)
+
+*Choix.* À la confirmation de l'émission, selon le réglage
+`settlement_mode` : `post` (défaut) passe aussitôt un règlement par
+paiement, `propose` les laisse « à passer » (bouton « Passer les
+règlements »). Chaque règlement passe par
+`Partiduo::Api::Accounting.post_financial` (le seul service d'écriture,
+ADR-003 D6), dans le journal du lot, à la date d'exécution, lettré avec
+l'écriture ouverte, fichier du lot en pièce jointe, `source` =
+`sepa:item:<id>`. Jamais en double :
+
+* un paiement déjà passé est sauté ;
+* une écriture non annulée de même `source` est reprise ;
+* une facture lettrée hors du lot entre-temps (relevé importé par
+  `partiduo-bankimport`, saisie manuelle) n'est pas réglée une seconde fois :
+  le paiement devient « réglé ailleurs ».
+
+Chaque paiement passe dans son point de sauvegarde ; un refus de la
+Comptabilité (période close, fiche disparue) reste sur le paiement.
+
+=== D-SEPA-011 — Règlement extourné : de nouveau à passer (10 octobre 2026)
+
+*Choix.* Abonnement à `entry.cancelled` (liste fermée d'ADR-003 D7) : le
+paiement dont le règlement est extourné redevient à passer et garde la
+trace de l'écriture annulée (`reversed_entry_id`). Le lot émis et son
+fichier ne changent pas. Aucun nouvel événement n'est publié.
+
+=== D-SEPA-012 — Contrôle du fichier : structure, XSD s'il est déposé (10 octobre 2026)
+
+*Contexte.* Les XSD `pain.001.001.09` et `pain.008.001.08` ne sont pas sur
+le disque (seul un ancien `pain.008.001.02` hors du projet). Les schémas
+ISO 20022 sont diffusés par l'autorité d'enregistrement ISO 20022 sous ses
+propres conditions d'utilisation, et ceux de l'EPC sous son droit d'auteur ;
+à notre lecture, aucune de ces conditions n'est une licence permettant de
+les redistribuer sous AGPL-3.0-or-later. Ils ne sont donc pas embarqués.
+
+*Choix.*
+
+* `Structure` : contrôle structurel écrit pour la partie des schémas
+  qu'emploient les guides de l'EPC — espace de noms, ordre et nombre des
+  éléments, valeurs (identifiants, IBAN, BIC, ICS, dates, montants, jeu de
+  caractères, longueurs, codes), cohérence de `NbOfTxs` et `CtrlSum`.
+  Ce n'est *pas* le XSD officiel.
+* `Schema` : si l'exploitant dépose les XSD officiels dans
+  `PARTIDUO_SEPA_XSD_DIR` (`pain.001.001.09.xsd`, `pain.008.001.08.xsd`),
+  le fichier est en plus validé contre eux par libxml2 (fonctions
+  `xmlSchema*`, liées à côté du module XML de Crystal). Les specs
+  vérifient la liaison avec un schéma *minimal* écrit pour elles
+  (`spec/fixtures/xsd-minimal/`), qui n'est pas le schéma officiel.
+
+Un fichier refusé n'est pas conservé : l'approbation échoue
+(`file.invalid`, avec les cinq premiers écarts).
+
+=== D-SEPA-013 — Interface : HTMX d'abord (10 octobre 2026)
+
+*Choix.* Écran du lot : faits, contrôle en direct du lot en préparation
+(messages de `check_batch`), paiements dont le montant et la communication
+se corrigent dans la ligne en HTMX (le serveur rend la ligne seule,
+`_item.html` ; sans JavaScript, par redirection), écritures ouvertes à
+cocher, saisie d'un paiement (fiches en `datalist`), confirmation de
+l'émission. Listes des lots et des mandats, formulaires des lots, mandats et
+réglages par les gabarits génériques de l'interface. Tuile « Paiements
+SEPA » et compteur du menu (lots à approuver ou à émettre, pour qui
+approuve) par `PartiduoUi::Extensions.tile` et `counter`. Opal n'est pas
+nécessaire à cette version.
+
+=== D-SEPA-014 — Correspondance avec l'application d'origine (10 octobre 2026)
+
+*Choix.* L'état « nouveau » devient un lot en préparation, « déposé » un
+lot émis (sa « date de dépôt » est la date d'émission) ; préparation et
+approbation sont ajoutées. Les erreurs codées (montant, fiche, IBAN) sont
+des messages par paiement. Le compte bancaire saisi dans une table propre
+devient la fiche Banque du journal financier. Le nom du fichier suit
+`sepa-virements-<lot>-<date>.xml`. Aucun envoi à la banque (pas d'EBICS) :
+le fichier se télécharge et se dépose à la main, comme avant.
+
+== Amendements proposés au contrat du cœur
+
+À soumettre à l'utilisateur ; l'extension les contourne sans modifier
+`partiduo-app`.
+
+A-SEPA-1 — Écritures ouvertes de toutes les fiches d'une nature (`Partiduo::Api::Accounting`)::
+  Une requête `open_items(actor, kind : "supplier" | "customer", as_of)`
+  rendant les lignes non lettrées de toutes les fiches de la nature, en une
+  requête agrégée (comme `party_balances`). Aujourd'hui l'extension appelle
+  `account_statement` fiche par fiche (une requête par fournisseur).
+  Contournement en place (D-SEPA-009).
+
+A-SEPA-2 — Identifiant créancier SEPA dans la configuration société (`Partiduo::Api::Core::SettingsView`)::
+  Un champ `creditor_identifier` (ICS), utile aussi aux mentions des
+  factures de la Facturation (« prélevé sous le mandat … »). Aujourd'hui il
+  est dans les réglages de l'extension. Contournement en place.
+
+A-SEPA-3 — Double validation et authentification forte récente pour les dossiers (`Partiduo::Api`)::
+  Un réglage de dossier « validation à deux » commun (comme celui de
+  l'administration, D-VAL2-001) et l'heure de la dernière authentification
+  forte dans `Actor`, pour que toute extension applique la même règle et la
+  protection de repli à une personne (D-VAL2-004). Aujourd'hui le réglage
+  est propre à l'extension, sans ré-authentification. Contournement en
+  place (D-SEPA-005).
+
+A-SEPA-4 — Paiement proposé depuis un document reçu (`partiduo-document`)::
+  L'application d'origine ajoutait un virement depuis l'extension des
+  documents. Ce serait une commande de `Sepa::Api` appelée par
+  `partiduo-document` (`depends_on "SEPA"` facultatif) ; rien à changer
+  au cœur. À décider avec le portage de cette extension.
+
+Aucun nouvel événement n'est demandé à ADR-003 D7.

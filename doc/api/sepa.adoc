@@ -1,0 +1,106 @@
+= Contrat `Sepa::Api`
+:toc: left
+:toc-title: Table des matières
+:icons: font
+
+Contrat public de l'extension `SEPA`, sur le modèle de `Partiduo::Api` :
+acteur en premier argument, contrôle d'accès en première ligne (extension
+active, permission), vues immuables, commandes qui rendent un `Result` avec
+des erreurs par champ (`sepa.errors.*`), dans une transaction. L'interface
+`ui/bulma/` ne passe que par lui.
+
+== Permissions
+
+[cols="1,3",options="header"]
+|===
+|Permission |Ouvre
+|`sepa.read` |`settings`, `mandates`, `mandate`, `batches`, `batch`, `item`, `candidates` (+ `accounting.entry.read`, `cards.card.read`), `check_batch`, `file` (+ `core.attachment.read`), `tile`, `pending_count`
+|`sepa.prepare` |`create_batch`, `update_batch`, `delete_batch`, `add_open_items`, `add_item`, `update_item`, `remove_item`, `prepare`, `reopen`
+|`sepa.approve` |`approve` (+ `core.attachment.write`), `confirm_issue`, `post_settlements` (+ `accounting.entry.post`, journal en écriture)
+|`sepa.admin` |`update_settings`, `create_mandate`, `update_mandate`, `revoke_mandate`, `delete_mandate`
+|===
+
+Les lots ne sont visibles que dans les journaux financiers que l'acteur voit
+(`Partiduo::Api::Accounting.ledgers`).
+
+Contrôles purs, sans acteur : `iban_valid?`, `bic_valid?`, `ics_valid?`,
+`format_iban`, `mask_iban`, `transliterate(text, max)`,
+`next_business_day(date)`, `default_date(kind)`.
+
+== Cycle d'un lot
+
+[cols="1,2,2",options="header"]
+|===
+|Statut |Entrée |Sortie
+|`draft` |`create_batch` ; `reopen` |`prepare` ; `delete_batch`
+|`prepared` |`prepare` (contrôle complet, séquences figées) |`approve` ; `reopen` ; `delete_batch`
+|`approved` |`approve` (fichier produit, contrôlé, conservé) |`confirm_issue` ; `reopen` (fichier retiré)
+|`issued` |`confirm_issue(actor, id, issued_on)` |—
+|===
+
+* `approve` : en validation à deux (`approval_mode = dual`), refusé à la
+  personne qui a préparé (`approval.same_person`). Le fichier est contrôlé
+  par `Structure` et, s'il est déposé, par le XSD officiel
+  (`PARTIDUO_SEPA_XSD_DIR`) ; un écart rend `file.invalid`.
+* `confirm_issue` : met à jour les mandats (compteur, séquence suivante,
+  amendement signalé, mandat ponctuel épuisé), puis passe les règlements
+  si le réglage vaut `post` et que l'acteur a `accounting.entry.post`.
+  Rend un `SettlementReportView` (`posted`, `elsewhere`, `failed`).
+* `post_settlements` : règlements restants d'un lot émis ; jamais en double
+  (écriture de même `source` reprise, facture lettrée ailleurs marquée
+  `elsewhere`, refus gardé sur le paiement).
+
+== Composition
+
+* `candidates(actor, batch_id) : Array(CandidateView)` — factures
+  fournisseurs non lettrées (virements) ou factures clients non lettrées des
+  clients sous mandat actif (prélèvements) ; `problem` : `iban.blank`,
+  `iban.invalid`.
+* `add_open_items(actor, batch_id, line_ids) : Result(Int32)` — au montant
+  ouvert entier ; erreurs `item.none_selected`, `item.line_unavailable`,
+  `item.candidate_iban_blank|invalid`.
+* `add_item(actor, batch_id, ItemInput)`, `update_item(actor, id, ItemInput)`,
+  `remove_item(actor, id)`. `ItemInput` : `card_code`, `amount`,
+  `remittance` (texte, référence RF ou communication structurée belge),
+  `iban`, `bic`, `name`. Erreurs : `item.card.*`, `item.amount.positive|
+  too_large|cents|over_open`, `item.mandate.none`, `iban.*`, `bic.invalid`,
+  `batch.not_draft`.
+* `BatchInput` : `kind` (`transfer`, `debit`), `ledger_id`, `requested_on`,
+  `label`, `batch_booking`. Erreurs : `ledger.*`, `date.past|too_soon|
+  not_business_day|too_far`, `batch.debit_household`, `batch.kind_frozen`.
+
+== Contrôle complet (`check_batch`, `prepare`, `approve`)
+
+Compte de la fiche Banque du journal (`ledger.iban_blank|iban_invalid|
+bic_invalid|currency`), raison sociale (`company.name_blank`), date,
+nombre de paiements (`batch.empty|too_many`), ICS d'un prélèvement
+(`settings.ics_blank|ics_invalid`), puis chaque paiement, au champ
+`items[<rang>].<champ>` : `item.amount_invalid`, `item.name.blank`,
+`item.charset`, `item.iban_blank|iban_invalid|bic_invalid`,
+`item.line_closed`, `item.amount.over_open`, `item.mandate_inactive|
+mandate_not_signed|mandate_expired`.
+
+== Mandats
+
+`MandateInput` : `card_code`, `signed_on`, `iban`, `rum` (vide : proposée),
+`bic`, `debtor_name`, `kind` (`recurrent`, `one_off`). Erreurs :
+`mandate.card.blank|unknown|frozen`, `mandate.rum.invalid|taken|frozen`,
+`mandate.signed_on.future`, `mandate.kind.frozen`,
+`mandate.debtor_name.blank`, `mandate.not_active`, `mandate.in_use`,
+`iban.invalid`, `bic.invalid`. `MandateView.next_sequence` : `FRST`,
+`RCUR`, `OOFF` ou `nil` ; `expires_on` : 36 mois après le dernier usage.
+
+== Réglages
+
+`SettingsInput` : `approval_mode` (`single`, `dual`), `settlement_mode`
+(`post`, `propose`), `batch_booking`, `creditor_identifier` (ICS),
+`ledger_id`.
+
+== Fichiers
+
+`pain.001.001.09` (virements) et `pain.008.001.08` (prélèvements SDD Core),
+encodés en UTF-8, nommés `sepa-virements-<lot>-<AAAAMMJJ>.xml` ou
+`sepa-prelevements-<lot>-<AAAAMMJJ>.xml`, conservés en `application/xml`
+par `Partiduo::Api::Core.store_attachment`. Identifiant du message
+`PDSEPA-<lot>-<AAAAMMJJHHMMSS>` ; référence de bout en bout
+`PD<lot>-<paiement>[-<pièce>]`.

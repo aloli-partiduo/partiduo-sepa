@@ -1,0 +1,39 @@
+name: partiduo-sepa
+version: 0.1.0
+
+description: |
+  Extension des paiements SEPA de Partiduo (ADR-003) : lots de virements
+  fournisseurs (ISO 20022 pain.001.001.09) tirés des factures et des
+  écritures ouvertes, lots de prélèvements SDD Core (pain.008.001.08) sur
+  mandats, contrôle de l'IBAN, du BIC, de l'ICS et du jeu de caractères
+  SEPA, double validation facultative (préparer, approuver), fichier
+  conservé en pièce jointe, règlements passés par le contrat de la
+  Comptabilité. Aucun envoi à la banque.
+
+authors:
+  - Philippe Nénert <it+claude.ai@aloli.fr>
+
+crystal: ">= 1.19.1"
+
+license: AGPL-3.0-or-later
+
+targets:
+  partiduo-sepa-manage:
+    main: manage.cr
+
+dependencies:
+  # Le cœur : registre, événements et contrat Partiduo::Api (Comptabilité,
+  # fiches, pièces jointes, configuration société).
+  partiduo:
+    path: ../partiduo-app
+  marten:
+    path: ../../marten
+
+development_dependencies:
+  # L'interface qui monte ui/bulma/ : nécessaire aux specs et à manage.cr ;
+  # la distribution l'apporte elle-même.
+  partiduo-ui-bulma:
+    path: ../partiduo-ui-bulma
+  ameba:
+    github: crystal-ameba/ameba
+    version: "~> 1.6"

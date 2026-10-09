@@ -1,0 +1,135 @@
+en:
+  sepa:
+    module:
+      name: "SEPA payments"
+    permissions:
+      read: "View SEPA payment batches, mandates and files"
+      prepare: "Compose, prepare, reopen and delete SEPA payment batches"
+      approve: "Approve SEPA batches, produce the file, confirm issuance and post settlements"
+      admin: "Configure SEPA payments and manage direct debit mandates"
+    menu:
+      sepa: "SEPA payments"
+      sepa_batches: "Payment batches"
+      sepa_new: "New batch"
+      sepa_mandates: "Direct debit mandates"
+      sepa_settings: "SEPA payments"
+    kinds:
+      transfer: "Credit transfers"
+      debit: "Direct debits"
+    statuses:
+      draft: "In preparation"
+      prepared: "To approve"
+      approved: "Approved, to issue"
+      issued: "Issued"
+    approval_modes:
+      single: "One person"
+      dual: "Two people"
+    settlement_modes:
+      post: "Post settlements when issuance is confirmed"
+      propose: "Propose settlements, to be posted later"
+    mandate_kinds:
+      recurrent: "Recurrent"
+      one_off: "One-off"
+    mandate_statuses:
+      active: "Active"
+      revoked: "Revoked"
+      used: "Used"
+    sequences:
+      FRST: "First (FRST)"
+      RCUR: "Recurrent (RCUR)"
+      OOFF: "One-off (OOFF)"
+    settlements:
+      none: "Settlement to post"
+      posted: "Settlement posted"
+      elsewhere: "Settled elsewhere"
+    errors:
+      choice:
+        invalid: "Value not allowed: %{value}."
+      ledger:
+        blank: "Choose a financial ledger."
+        invalid: "This ledger is not a financial ledger open to you."
+        currency: "The ledger is kept in %{currency}: SEPA payments are in euros."
+        iban_blank: "The bank card of ledger %{code} has no IBAN."
+        iban_invalid: "The IBAN of the bank card of ledger %{code} is invalid."
+        bic_invalid: "The BIC of the bank card of ledger %{code} is invalid."
+      company:
+        name_blank: "Fill in the company name of the file: it names the ordering party."
+      batch:
+        debit_household: "A household file does not issue direct debits."
+        label:
+          too_long: "The label must not exceed %{max} characters."
+        empty: "The batch contains no payment."
+        too_many: "A batch cannot exceed %{max} payments."
+        kind_frozen: "The kind of a batch that contains payments no longer changes."
+        not_draft: "This batch is no longer in preparation: reopen it to change it."
+        not_deletable: "An approved batch is reopened before being deleted; an issued batch is kept."
+        not_reopenable: "Only a prepared or approved batch that has not been issued can be reopened."
+      date:
+        past: "The execution date cannot be in the past."
+        too_soon: "A direct debit is presented at the earliest on the next business day."
+        not_business_day: "This day is not a business day for SEPA payments; next business day: %{next}."
+        too_far: "The execution date is more than a year away."
+      settings:
+        ics_blank: "Fill in the SEPA creditor identifier (CI) in the settings."
+        ics_invalid: "The SEPA creditor identifier (CI) is invalid."
+      iban:
+        blank: "Enter the IBAN."
+        invalid: "Invalid IBAN (country, length or check digits)."
+      bic:
+        invalid: "Invalid BIC (8 or 11 characters)."
+      item:
+        none_selected: "Tick at least one entry."
+        line_unavailable: "Entry %{id} is no longer open or is already in a batch."
+        candidate_iban_blank: "Card %{code} has no IBAN (receipt %{receipt})."
+        candidate_iban_invalid: "The IBAN of card %{code} is invalid (receipt %{receipt})."
+        card:
+          blank: "Enter the third party's card."
+          unknown: "No card has the code %{code}."
+          frozen: "The third party of a payment taken from an entry does not change."
+        mandate:
+          none: "Card %{code} has no active direct debit mandate."
+        amount:
+          positive: "The amount must be positive."
+          too_large: "The amount exceeds the ceiling of a SEPA payment."
+          cents: "The amount stops at the cent."
+          over_open: "The amount exceeds what remains open (%{amount})."
+        remittance:
+          too_long: "The remittance information must not exceed %{max} characters."
+        amount_invalid: "Payment no. %{position} (%{name}): invalid amount."
+        name:
+          blank: "Payment no. %{position}: the third party's name is empty."
+        charset: "Payment no. %{position} (%{name}): characters outside the SEPA set."
+        line_closed: "Payment no. %{position} (%{name}): receipt %{receipt} is no longer open (settled or matched in the meantime)."
+        iban_blank: "Payment no. %{position} (%{name}): no IBAN."
+        iban_invalid: "Payment no. %{position} (%{name}): invalid IBAN."
+        bic_invalid: "Payment no. %{position} (%{name}): invalid BIC."
+        mandate_inactive: "Payment no. %{position} (%{name}): the mandate is no longer active."
+        mandate_not_signed: "Payment no. %{position} (%{name}): the mandate is signed after the due date."
+        mandate_expired: "Payment no. %{position} (%{name}): mandate expired since %{date} (36 months without collection)."
+      mandate:
+        card:
+          blank: "Enter the customer's card."
+          unknown: "No card has the code %{code}."
+          frozen: "The customer of a mandate already collected does not change."
+        rum:
+          invalid: "The mandate reference has at most 35 characters of the SEPA set, without “/” at the start, at the end or doubled."
+          taken: "A mandate already has this reference."
+          frozen: "The reference of a mandate already collected does not change."
+        signed_on:
+          future: "The signature date cannot be in the future."
+        debtor_name:
+          blank: "Enter the debtor's name."
+        kind:
+          frozen: "The kind of a mandate already collected does not change."
+        not_active: "This mandate is no longer active."
+        in_use: "This mandate was used for a payment: revoke it instead."
+      approval:
+        not_prepared: "Only a prepared batch can be approved."
+        same_person: "Two-person approval: the batch must be approved by someone other than the person who prepared it."
+      file:
+        invalid: "The file produced is not compliant: %{detail}."
+      issue:
+        not_approved: "Only an approved batch can be confirmed as issued."
+        future: "The issuance date cannot be in the future."
+      settlement:
+        not_issued: "Settlements are posted once the batch has been issued."

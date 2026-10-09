@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: AGPL-3.0-or-later
+     Schéma MINIMAL écrit pour les specs de partiduo-sepa : il ne contrôle
+     que l'en-tête de groupe d'un pain.001.001.09 et laisse passer le
+     reste. Ce n'est PAS le XSD officiel ISO 20022, que l'exploitant dépose
+     lui-même dans PARTIDUO_SEPA_XSD_DIR (DECISIONS D-SEPA-012). -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09"
+           targetNamespace="urn:iso:std:iso:20022:tech:xsd:pain.001.001.09"
+           elementFormDefault="qualified">
+  <xs:element name="Document">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="CstmrCdtTrfInitn">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="GrpHdr">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="MsgId">
+                      <xs:simpleType>
+                        <xs:restriction base="xs:string">
+                          <xs:minLength value="1"/>
+                          <xs:maxLength value="35"/>
+                        </xs:restriction>
+                      </xs:simpleType>
+                    </xs:element>
+                    <xs:element name="CreDtTm" type="xs:dateTime"/>
+                    <xs:element name="NbOfTxs" type="xs:string"/>
+                    <xs:element name="CtrlSum" type="xs:decimal" minOccurs="0"/>
+                    <xs:element name="InitgPty">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                        </xs:sequence>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="PmtInf" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

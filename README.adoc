@@ -1,0 +1,126 @@
+= partiduo-sepa — paiements SEPA
+:toc: left
+:toc-title: Table des matières
+:icons: font
+
+*Partiduo* est le portage en Crystal de https://noalyss.eu[NOALYSS], logiciel
+libre de comptabilité créé et maintenu par *Dany De Bontridder*. Partiduo
+n'est pas un projet officiel NOALYSS.
+
+Ce dépôt est l'extension `SEPA` de Partiduo (ADR-003), successeur de
+l'extension « Virements SEPA » de NOALYSS (`noalyss_xmlpayment`, la source
+*legacy*) : on en porte les fonctions, pas le code. Les factures
+fournisseurs (et, nouveauté, les factures clients sous mandat) sont réunies
+en lots, contrôlées, préparées puis approuvées — à une ou deux personnes —,
+et le fichier ISO 20022 est produit, contrôlé et conservé en pièce jointe.
+Une fois le fichier déposé à la banque par l'utilisateur, les règlements
+passent par le service d'écriture de la Comptabilité, jamais en double.
+*Aucun envoi à la banque* : ni EBICS, ni API bancaire.
+
+Décisions (`D-SEPA-*`) et amendements proposés : link:DECISIONS.adoc[].
+Référence du contrat : link:doc/api/sepa.adoc[].
+
+== Fonctions
+
+[cols="1,3",options="header"]
+|===
+|Fonction |Dans SEPA
+
+|Virements fournisseurs
+|`pain.001.001.09` (guides client-banque de l'EPC, version 2019 des
+messages) : lots tirés des factures fournisseurs non lettrées, montant
+ouvert exact, date d'exécution, référence de bout en bout, communication
+libre, RF ou structurée belge, adresse hybride.
+
+|Prélèvements SDD Core
+|`pain.008.001.08` : mandats (RUM, date de signature, récurrent ou
+ponctuel, révocation, expiration à 36 mois), séquences FRST, RCUR, OOFF,
+identifiant créancier SEPA (ICS), amendement de l'IBAN.
+
+|Contrôles
+|IBAN (clé modulo 97, longueur du pays), BIC, ICS, jeu de caractères SEPA
+et translittération des accents, jours ouvrés TARGET, écritures toujours
+ouvertes. Fichier relu par un contrôle structurel, et validé contre le XSD
+officiel quand l'exploitant le dépose (`PARTIDUO_SEPA_XSD_DIR`).
+
+|Validation
+|Préparer, puis approuver ; validation à deux personnes facultative
+(réglage `single` ou `dual`, comme l'administration du parc).
+
+|Fichier et émission
+|Fichier conservé en pièce jointe, téléchargeable ; émission confirmée par
+l'utilisateur (date de dépôt) ; lot rouvert tant qu'il n'est pas émis.
+
+|Règlements
+|Une écriture par paiement par `Partiduo::Api::Accounting.post_financial`,
+lettrée avec la facture, passée à l'émission ou proposée ; facture réglée
+ailleurs jamais réglée deux fois ; règlement extourné de nouveau à passer
+(`entry.cancelled`).
+|===
+
+Correspondance avec l'application d'origine : l'état « nouveau » devient un
+lot en préparation, « déposé » un lot émis ; le compte bancaire est celui de
+la fiche Banque du journal financier ; le `pain.001.001.03` devient le
+`pain.001.001.09` (D-SEPA-001, D-SEPA-014).
+
+== Organisation
+
+[source]
+----
+src/
+├── partiduo-sepa.cr             # point d'entrée du shard
+├── partiduo-sepa/cli.cr         # migrations : require "partiduo-sepa/cli"
+└── sepa/                        # métier (application Marten « sepa »)
+    ├── app.cr, manifest.cr      # code SEPA, permissions, menus, abonnement
+    ├── models/                  # tables sepa_*
+    ├── migrations/              # 0001 : tables et contraintes
+    ├── services/                # codes, jeu de caractères, calendrier, lots, mandats, règlements (interne)
+    ├── xml/                     # production pain.001 / pain.008, contrôle structurel, XSD par libxml2
+    ├── api/                     # contrat public Sepa::Api
+    └── locales/                 # fr, en, nl
+ui/
+└── bulma/                       # interface pour partiduo-ui-bulma (application « sepa_ui »)
+    ├── bulma.cr                 # routes sous /ext/SEPA/, compteur du menu
+    ├── dashboard_tile.cr        # tuile « Paiements SEPA »
+    ├── handlers/, templates/sepa/, assets/sepa/, locales/
+spec/fixtures/xsd-minimal/       # schéma minimal des specs (pas le XSD officiel)
+----
+
+== Composer une distribution
+
+[source,crystal]
+----
+require "partiduo-ui-bulma/partiduo_ui"
+require "partiduo-sepa"
+require "partiduo-sepa/ui/bulma"
+# installed_apps += Sepa::INSTALLED_APPS + Sepa::Ui::INSTALLED_APPS
+# ligne de commande : require "partiduo-sepa/cli"
+----
+
+L'extension exige la Comptabilité (`depends_on "ACCOUNTING"`) et un journal
+financier adossé à une fiche Banque dotée de son IBAN (et de préférence de
+son BIC) ; elle s'active par dossier (`Partiduo::Api::Modules.activate`,
+écran « Modules »). Pour les prélèvements, renseigner l'ICS dans
+« Paramètres › Paiements SEPA ».
+
+Validation XSD (facultative) : déposer les schémas officiels
+`pain.001.001.09.xsd` et `pain.008.001.08.xsd` dans un dossier et le
+désigner par `PARTIDUO_SEPA_XSD_DIR` ; ils ne sont pas fournis (licence,
+D-SEPA-012).
+
+== Commandes
+
+[source,sh]
+----
+cd prod-crystal/partiduo/partiduo-sepa
+SKIP_MARTEN_CLI_PRECOMPILATION=1 shards install
+createdb -h /tmp partiduo_test_<agent>
+DATABASE_URL='postgres:///partiduo_test_<agent>?host=/tmp' crystal spec --order random
+crystal tool format src spec ui config scripts manage.cr && bin/ameba
+----
+
+== Version et licence
+
+Numéro dans `shard.yml` seulement (constante `Sepa::VERSION` lue à la
+compilation) ; chaque commit en incrémente le dernier chiffre. Licence
+AGPL-3.0-or-later (fichier `LICENSE`).

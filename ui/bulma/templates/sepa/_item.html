@@ -1,0 +1,25 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Un paiement d'un lot (variable item) : rang, tiers, IBAN et BIC (signalés s'ils diffèrent de la fiche ou du mandat), pièce réglée, communication, référence de bout en bout, montant ; séquence et RUM d'un prélèvement ; état du règlement d'un lot émis. Tant que le lot est en préparation, formulaire de correction (montant, communication) envoyé en HTMX, qui remplace la ligne par la réponse du serveur, et retrait. Rendue seule en réponse à HTMX. #}<tr id="sepa-item-{{ item.id }}" class="sepa-item{% if item.error %} sepa-row-error{% endif %}" data-sepa-item="{{ item.id }}">
+  <td class="pd-mono">{{ item.position }}</td>
+  <td><strong>{{ item.name }}</strong> <small class="pd-muted pd-mono">{{ item.card_code }}</small>
+    <br><span class="pd-mono sepa-iban">{{ item.iban }}</span>{% if item.bic %} <small class="pd-mono">{{ item.bic }}</small>{% endif %}
+    {% if item.iban_differs %}<br><span class="tag is-warning is-light" data-sepa-iban-differs>{% translate "sepa_ui.items.iban_differs" %} {{ item.card_iban }}</span>{% endif %}
+    {% if item.amended %}<br><span class="tag is-info is-light">{% translate "sepa_ui.items.amended" %}</span>{% endif %}</td>
+  <td>{% if item.receipt %}{% if item.entry_url %}<a href="{{ item.entry_url }}" class="pd-mono">{{ item.receipt }}</a>{% else %}<span class="pd-mono">{{ item.receipt }}</span>{% endif %}{% else %}<span class="pd-muted">{% translate "sepa_ui.items.manual" %}</span>{% endif %}
+    {% if item.due_on %}<br><small class="pd-muted">{% translate "sepa_ui.items.due_on" %} {{ item.due_on }}</small>{% endif %}
+    {% if debit %}{% if item.mandate_rum %}<br><small class="pd-mono">{{ item.mandate_rum }}</small>{% endif %}{% if item.sequence %} <span class="tag is-light">{{ item.sequence }}</span>{% endif %}{% endif %}</td>
+  <td>{% if item.editable %}
+    <form method="post" action="{{ item.update_url }}" class="sepa-item-form" hx-post="{{ item.update_url }}" hx-target="#sepa-item-{{ item.id }}" hx-swap="outerHTML" data-sepa-item-form>
+      {% csrf_input %}<input type="hidden" name="next" value="{{ next }}">
+      <label class="is-sr-only" for="sepa-remittance-{{ item.id }}">{% translate "sepa_ui.items.remittance" %}</label>
+      <input class="input is-small sepa-remittance" type="text" id="sepa-remittance-{{ item.id }}" name="remittance" value="{{ item.remittance }}" maxlength="140" placeholder="{% translate 'sepa_ui.items.remittance' %}">
+      <label class="is-sr-only" for="sepa-amount-{{ item.id }}">{% translate "sepa_ui.items.amount" %}</label>
+      <input class="input is-small pd-mono sepa-amount" type="text" inputmode="decimal" id="sepa-amount-{{ item.id }}" name="amount" value="{{ item.amount_input }}" required>
+      <button class="button is-small pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "sepa_ui.items.save" %}<span class="is-sr-only"> : {{ item.name }}</span></span></button>
+    </form>
+    <form method="post" action="{{ item.remove_url }}" class="sepa-inline">{% csrf_input %}<button class="button is-small is-text" type="submit">{% translate "sepa_ui.items.remove" %}<span class="is-sr-only"> : {{ item.name }}</span></button></form>
+    {% else %}{{ item.remittance }}{% if item.reference_kind %} <span class="tag is-light">{{ item.reference_kind }}</span>{% endif %}
+    <br><small class="pd-mono pd-muted">{{ item.end_to_end_id }}</small>{% endif %}
+    {% if form_error %}<p class="help is-danger" role="alert" data-sepa-form-error>{{ form_error }}</p>{% elsif item.error %}<p class="help is-danger" data-sepa-error>{{ item.error }}</p>{% endif %}</td>
+  <td class="amount pd-mono">{{ item.amount }}</td>
+  {% if item.settlement %}<td><span class="tag {{ item.settlement_class }} is-light">{{ item.settlement }}</span>{% if item.settlement_url %} <a href="{{ item.settlement_url }}" class="pd-mono">{% translate "sepa_ui.items.entry" %}</a>{% endif %}</td>{% endif %}
+</tr>
