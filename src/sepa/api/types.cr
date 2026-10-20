@@ -8,10 +8,15 @@ module Sepa
     # Statuts d'un lot (D-SEPA-005). Libellé : `sepa.statuses.<code>`.
     STATUSES = %w[draft prepared approved issued]
 
-    # Modes de validation (D-SEPA-005), mêmes codes que le réglage
-    # « validation à deux » de l'administration du parc. Libellé :
-    # `sepa.approval_modes.<code>`.
+    # Modes de validation, ceux du réglage `approval_mode` de la société
+    # (D-SEPA-017) : celui qui a décidé est inscrit sur le lot approuvé.
+    # Libellé : `sepa.approval_modes.<code>`.
     APPROVAL_MODES = %w[single dual]
+
+    # Demande d'approbation d'un lot préparé, soumise au service commun
+    # `Partiduo::Api::Approvals` (D-SEPA-017) : nature et objet
+    # (`batch:<id>`).
+    APPROVAL_KIND = "batch"
 
     # Règlement à la confirmation de l'émission (D-SEPA-010) : passé ou
     # seulement proposé. Libellé : `sepa.settlement_modes.<code>`.
@@ -45,14 +50,16 @@ module Sepa
 
     # --- Entrées ---------------------------------------------------------------
 
-    # Réglages du dossier (D-SEPA-005, D-SEPA-010) ; `creditor_identifier` :
-    # ICS, exigé pour préparer un lot de prélèvements.
+    # Réglages propres à l'extension (D-SEPA-010). L'ICS et la validation à
+    # une ou deux personnes se règlent dans la société
+    # (`Partiduo::Api::Core.update_settings`, D-SEPA-016, D-SEPA-017) ;
+    # `discard_legacy_creditor_identifier` : oublier l'ICS gardé par la
+    # migration 0002 parce qu'il différait de celui de la société.
     record SettingsInput,
-      approval_mode : String = "single",
       settlement_mode : String = "post",
       batch_booking : Bool = true,
-      creditor_identifier : String = "",
-      ledger_id : Int64? = nil
+      ledger_id : Int64? = nil,
+      discard_legacy_creditor_identifier : Bool = false
 
     # Lot à composer : genre, journal financier du compte donneur d'ordre
     # (virement) ou créancier (prélèvement), date d'exécution ou d'échéance,
@@ -89,13 +96,19 @@ module Sepa
 
     # --- Vues ------------------------------------------------------------------
 
+    # Réglages de l'extension, et ce que la société porte pour elle (lecture
+    # seule ici) : `creditor_identifier` (ICS, exigé pour préparer un lot de
+    # prélèvements) et `approval_mode` (`single`, `dual`) ;
+    # `legacy_creditor_identifier` : ICS des anciens réglages de l'extension,
+    # différent de celui de la société, gardé pour vérification (D-SEPA-016).
     record SettingsView,
-      approval_mode : String,
       settlement_mode : String,
       batch_booking : Bool,
-      creditor_identifier : String,
       ledger_id : Int64?,
-      stored : Bool do
+      stored : Bool,
+      creditor_identifier : String,
+      approval_mode : String,
+      legacy_creditor_identifier : String = "" do
       def dual? : Bool
         approval_mode == "dual"
       end

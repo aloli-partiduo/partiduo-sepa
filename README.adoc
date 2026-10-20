@@ -44,8 +44,11 @@ ouvertes. Fichier relu par un contrôle structurel, et validé contre le XSD
 officiel quand l'exploitant le dépose (`PARTIDUO_SEPA_XSD_DIR`).
 
 |Validation
-|Préparer, puis approuver ; validation à deux personnes facultative
-(réglage `single` ou `dual`, comme l'administration du parc).
+|Préparer (le lot est soumis au service d'approbation du cœur), puis
+approuver dans l'écran commun « Approbations », après une
+authentification forte récente ; validation à une ou deux personnes selon
+le réglage de la société (`approval_mode`). Un lot modifié après sa
+soumission n'est pas exécuté (empreinte).
 
 |Fichier et émission
 |Fichier conservé en pièce jointe, téléchargeable ; émission confirmée par
@@ -100,8 +103,14 @@ require "partiduo-sepa/ui/bulma"
 L'extension exige la Comptabilité (`depends_on "ACCOUNTING"`) et un journal
 financier adossé à une fiche Banque dotée de son IBAN (et de préférence de
 son BIC) ; elle s'active par dossier (`Partiduo::Api::Modules.activate`,
-écran « Modules »). Pour les prélèvements, renseigner l'ICS dans
-« Paramètres › Paiements SEPA ».
+écran « Modules »). Pour les prélèvements, renseigner l'identifiant
+créancier SEPA (ICS) dans la configuration de la société (« Paramètres ›
+Société ») ; la validation à deux personnes s'y règle aussi.
+
+Depuis 0.1.3 (contrat du cœur 0.17.0), la migration `0002` reprend l'ICS
+et la validation à deux des anciens réglages de l'extension dans la
+société, et repasse en préparation les lots qui attendaient leur
+approbation selon l'ancien mécanisme (D-SEPA-016, D-SEPA-017).
 
 Validation XSD (facultative) : déposer les schémas officiels
 `pain.001.001.09.xsd` et `pain.008.001.08.xsd` dans un dossier et le

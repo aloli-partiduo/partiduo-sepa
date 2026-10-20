@@ -42,6 +42,14 @@ en:
       none: "Settlement to post"
       posted: "Settlement posted"
       elsewhere: "Settled elsewhere"
+    approval:
+      summary: "SEPA batch no. %{id}: %{kind} on %{date}"
+      details:
+        kind: "Kind"
+        ledger: "Financial ledger"
+        requested_on: "Execution or collection date"
+        count: "Payments"
+        schema: "Format"
     errors:
       choice:
         invalid: "Value not allowed: %{value}."
@@ -70,7 +78,7 @@ en:
         not_business_day: "This day is not a business day for SEPA payments; next business day: %{next}."
         too_far: "The execution date is more than a year away."
       settings:
-        ics_blank: "Fill in the SEPA creditor identifier (CI) in the settings."
+        ics_blank: "Fill in the SEPA creditor identifier (CI) in the company settings."
         ics_invalid: "The SEPA creditor identifier (CI) is invalid."
       iban:
         blank: "Enter the IBAN."
@@ -125,7 +133,10 @@ en:
         in_use: "This mandate was used for a payment: revoke it instead."
       approval:
         not_prepared: "Only a prepared batch can be approved."
-        same_person: "Two-person approval: the batch must be approved by someone other than the person who prepared it."
+        not_submitted: "This batch has no pending approval request: reopen it, then prepare it again."
+        changed: "The batch has changed since it was submitted (payments, bank account or CI): reopen it, then prepare it again."
+        attachment_permission: "Approving a batch produces its file: the right to store attachments is also required."
+        forbidden: "This batch is not accessible to you (ledger or entries): you cannot approve it."
       file:
         invalid: "The file produced is not compliant: %{detail}."
       issue:

@@ -126,6 +126,10 @@ lot approuvé, qui n'a pas été déposé, est alors retiré des pièces jointes
 à une extension l'heure de la dernière authentification forte (amendement
 A-SEPA-3).
 
+_Remplacé le 20 octobre 2026 (0.1.3) par D-SEPA-017 : réglage de la
+société et service d'approbation du socle ; le cycle des statuts est
+inchangé._
+
 === D-SEPA-006 — IBAN, BIC, ICS, références, jeu de caractères (10 octobre 2026)
 
 *Choix.* Module interne `Codes` : IBAN (forme compacte, longueur du pays de
@@ -196,6 +200,9 @@ bout en bout `PD<lot>-<paiement>-<pièce>`. Un avoir fournisseur n'est pas
 imputé d'office : on réduit le montant à la main. Avant de préparer et
 d'approuver, chaque écriture est relue : une facture réglée entre-temps
 bloque le lot (`item.line_closed`).
+
+_Lecture remplacée le 20 octobre 2026 (0.1.3) par `open_items`
+(D-SEPA-015) ; règles inchangées._
 
 L'application d'origine copiait les mêmes informations d'une opération
 (compte de la fiche, montant, communication) ; la copie depuis l'extension
@@ -277,6 +284,146 @@ devient la fiche Banque du journal financier. Le nom du fichier suit
 `sepa-virements-<lot>-<date>.xml`. Aucun envoi à la banque (pas d'EBICS) :
 le fichier se télécharge et se dépose à la main, comme avant.
 
+=== D-SEPA-015 — Écritures ouvertes lues par `open_items` (20 octobre 2026, 0.1.3)
+
+*Contexte.* Contournement de D-SEPA-009 : un relevé
+(`account_statement`) par fiche fournisseur ou client, à chaque liste, à
+chaque contrôle et à chaque passage des règlements. Le cœur 0.13.0 donne
+`Partiduo::Api::Accounting.open_items(actor, kind, as_of, include_partial)`
+(A-SEPA-1, D-AMD-011 de `partiduo-app`).
+
+*Choix.* Une requête par nature (`supplier` pour les virements, côté
+crédit ; `customer` pour les prélèvements, côté débit), indexée par ligne
+pour contrôler tout un lot (`prepare`, approbation, `update_item`,
+règlements). `include_partial` à faux : un lettrage partiel n'est toujours
+pas proposé (D-SEPA-009) — son reliquat n'a pas de ligne propre à lettrer
+et le paiement d'un reliquat se saisit à la main. `as_of` est le
+31 décembre 9999 : `open_items` rend ce qui était ouvert *à une date* (une
+facture réglée par un paiement daté de la semaine prochaine y paraît
+ouverte aujourd'hui) ; un lot règle ce qui est ouvert *maintenant*, comme
+le relevé d'avant, factures datées plus tard comprises. Les fiches restent
+lues avec les droits de l'acteur (`cards.card.read`, IBAN des virements) ;
+un règlement dont la fiche a disparu reste refusé (`item.card.unknown`).
+
+*Compatibilité.* Aucune donnée ne change ; les mêmes lignes sont
+proposées (spec : lettrage partiel, paiement daté plus tard, facture datée
+plus tard).
+
+=== D-SEPA-016 — ICS de la société (20 octobre 2026, 0.1.3)
+
+*Contexte.* L'ICS était un réglage de l'extension (contournement de
+A-SEPA-2). Le cœur 0.11.0 le porte dans la société
+(`SettingsView#creditor_identifier`, D-AMD-003) et l'écran « Société » de
+l'interface le propose.
+
+*Choix.* Les prélèvements lisent l'ICS de la société
+(`Partiduo::Api::Core.settings`, acteur système) ; le champ quitte
+`SettingsInput` et l'écran des réglages de l'extension, qui le rappelle
+avec un lien vers la configuration de la société (pour qui a
+`core.settings.manage`). `SettingsView#creditor_identifier` reste, en
+lecture seule.
+
+*Reprise des données (migration 0002).* SQL sur `core_settings`, et non
+par `Core.update_settings` : une migration ne peut pas sûrement appeler le
+contrat, dont les modèles suivent le schéma *final* du cœur — un dossier
+qui saute des versions rejouerait 0002 avant une migration du cœur qui
+ajouterait une colonne à `core_settings`, et la lecture du modèle
+échouerait ; une reprise « au premier accès » exigerait de garder la
+colonne. La migration dépend de `core 0007` et n'écrit que des colonnes
+que celle-ci garantit ; la valeur a été contrôlée à la saisie par la même
+clé modulo 97 (EPC262) que celle du cœur.
+
+* Société sans ICS : celui de l'extension y est copié.
+* Société avec un *autre* ICS : celui de la société l'emporte — il a été
+  saisi exprès dans la configuration du dossier, après l'ajout du champ,
+  et sert aussi aux mentions des factures ; l'écraser en silence serait
+  pire. La valeur de l'extension n'est pas perdue : elle est gardée dans
+  `sepa_setting.legacy_creditor_identifier`, montrée à l'écran des
+  réglages avec l'ICS de la société, jusqu'à ce qu'un administrateur
+  l'oublie (`discard_legacy_creditor_identifier`). Elle ne sert jamais à
+  produire un fichier.
+* Même ICS, ou aucun : rien n'est gardé.
+
+Puis la colonne `sepa_setting.creditor_identifier` est retirée. Retour
+arrière : colonne recréée, valeur reprise de la valeur gardée, sinon de la
+société. Un dossier neuf n'a pas de ligne `sepa_setting` : la migration
+n'écrit rien.
+
+=== D-SEPA-017 — Double validation par le service d'approbation du socle (20 octobre 2026, 0.1.3)
+
+*Contexte.* D-SEPA-005 tenait un réglage `approval_mode` propre et
+approuvait dans l'extension, sans ré-authentification ni piste commune
+(contournement de A-SEPA-3). Le cœur 0.17.0 donne le réglage du dossier
+(`approval_mode`, `approval_reauth_minutes` de la société), le service
+`Partiduo::Api::Approvals` (D-AMD-027, D-AMD-028) et l'interface l'écran
+commun « Approbations » avec la ré-authentification (D-AMD-031).
+
+*Choix.*
+
+* `prepare` fige le lot comme avant, puis le *soumet* (`Approvals.submit`)
+  au nom de la personne qui prépare : nature `batch`, objet `batch:<id>`,
+  résumé, montant total en EUR, détails (genre, journal, date, nombre de
+  paiements, format), permission `sepa.approve`, et l'*empreinte* SHA-256
+  de ce qu'on fait approuver : lot (genre, journal, date, libellé,
+  comptabilisation groupée), compte donneur d'ordre ou créancier (nom,
+  IBAN, BIC), ICS d'un prélèvement, chaque paiement (tiers, coordonnées,
+  montant au centime, communication, référence de bout en bout, écriture,
+  mandat, séquence et instantané du mandat). Un refus du service annule la
+  préparation.
+* L'approbation se décide dans l'écran commun (ou par `Sepa::Api.approve`,
+  qui appelle `Approvals.approve` sur la demande en attente) : permission
+  `sepa.approve`, authentification forte récente, autre personne en mode
+  `dual` — règles du socle, mode lu à la décision.
+* *Gestionnaire* (`Approvals.register_handler("SEPA", "batch")`), dans la
+  transaction de l'approbation : lot relu et verrouillé, toujours préparé,
+  droit `core.attachment.write`, contrôle complet, empreinte recalculée et
+  comparée à celle soumise (`approval.changed` : un lot, un compte ou un
+  ICS modifié après la soumission n'est pas exécuté), fichier produit et
+  contrôlé, `Approvals.consume` avec l'empreinte (une seule exécution),
+  fichier conservé, lot approuvé avec le mode de la décision. Un refus
+  laisse la demande en attente (le socle annule l'approbation). Le
+  gestionnaire plutôt qu'une exécution différée : l'approbation et le
+  fichier sont un seul geste, comme avant, et aucun lot « approuvé sans
+  fichier » n'existe.
+* `reopen` et `delete_batch` retirent la demande en attente
+  (`Approvals.cancel`, acteur système : l'objet a changé). Une demande
+  rejetée laisse le lot préparé ; on le rouvre, puis on le prépare de
+  nouveau (nouvelle demande).
+* Écran du lot : état de la demande (statut, personne et date de
+  soumission, règle du dossier, motif d'un rejet, « une autre personne
+  doit approuver » en mode `dual`) et lien vers l'écran commun ;
+  « Approuver » y mène. L'ancienne route `batch_approve` y renvoie.
+* Le compteur du menu de l'extension ne compte plus que les lots
+  approuvés à émettre : les lots à approuver sont comptés par
+  « Approbations » (menu et « À traiter » de l'interface), sans double
+  compte. La tuile garde les trois nombres.
+* `sepa_batch.approval_mode` (mode appliqué) et la contrainte
+  `sepa_batch_dual_check` restent : seconde garde en base, cohérente avec
+  `core_approval_dual_check`.
+
+*Reprise des données (migration 0002).*
+
+* `approval_mode = dual` dans l'extension rend le dossier `dual` (SQL sur
+  `core_settings`, mêmes raisons que D-SEPA-016), inscrit à la piste
+  d'audit des approbations (`policy.changed`, détail « single/5 → dual/5
+  (partiduo-sepa 0002) ») comme le ferait `update_settings`. Jamais
+  l'inverse : un dossier déjà `dual` le reste même si l'extension était à
+  `single` — on ne relâche pas une règle de sécurité.
+* Lots `prepared` selon l'ancien mécanisme : *repassés en préparation*
+  (séquences et instantanés des mandats effacés, comme `reopen`), plutôt
+  que soumis au service. La soumission exige une personne (le service
+  refuse l'acteur système) et l'empreinte calculée avec les droits de
+  celle qui prépare ; la fabriquer en SQL court-circuiterait les contrôles
+  du service. Rien n'est perdu : aucun fichier n'existait, les paiements
+  restent ; préparer de nouveau recontrôle et soumet. Les lots approuvés
+  ou émis ne changent pas.
+* Puis la colonne `sepa_setting.approval_mode` (et sa contrainte) est
+  retirée. Retour arrière : colonne recréée avec le mode de la société.
+
+*Alternative écartée.* Exécuter le lot plus tard, hors de l'approbation
+(consommation à la première action de l'extension) : un état de plus, et
+une approbation qui ne produit rien tant que personne ne revient au lot.
+
 == Amendements proposés au contrat du cœur
 
 À soumettre à l'utilisateur ; l'extension les contourne sans modifier
@@ -288,11 +435,19 @@ A-SEPA-1 — Écritures ouvertes de toutes les fiches d'une nature (`Partiduo::A
   requête agrégée (comme `party_balances`). Aujourd'hui l'extension appelle
   `account_statement` fiche par fiche (une requête par fournisseur).
   Contournement en place (D-SEPA-009).
++
+Réalisé le 20 octobre 2026 : `Accounting.open_items` (cœur 0.13.0,
+D-AMD-011) employé par l'extension 0.1.3, contournement retiré
+(D-SEPA-015).
 
 A-SEPA-2 — Identifiant créancier SEPA dans la configuration société (`Partiduo::Api::Core::SettingsView`)::
   Un champ `creditor_identifier` (ICS), utile aussi aux mentions des
   factures de la Facturation (« prélevé sous le mandat … »). Aujourd'hui il
   est dans les réglages de l'extension. Contournement en place.
++
+Réalisé le 20 octobre 2026 : `SettingsView#creditor_identifier` (cœur
+0.11.0, D-AMD-003) lu par l'extension 0.1.3 ; réglage propre retiré, valeur
+reprise par la migration 0002 (D-SEPA-016).
 
 A-SEPA-3 — Double validation et authentification forte récente pour les dossiers (`Partiduo::Api`)::
   Un réglage de dossier « validation à deux » commun (comme celui de
@@ -301,6 +456,13 @@ A-SEPA-3 — Double validation et authentification forte récente pour les dossi
   protection de repli à une personne (D-VAL2-004). Aujourd'hui le réglage
   est propre à l'extension, sans ré-authentification. Contournement en
   place (D-SEPA-005).
++
+Réalisé le 20 octobre 2026 : `Actor#strong_auth_at`, réglage
+`approval_mode` de la société et service `Partiduo::Api::Approvals` (cœur
+0.17.0, D-AMD-027, D-AMD-028), écran « Approbations » de l'interface
+(D-AMD-031) ; l'extension 0.1.3 soumet, exécute par gestionnaire et
+consomme avec l'empreinte du lot ; réglage et approbation propres retirés
+(D-SEPA-017).
 
 A-SEPA-4 — Paiement proposé depuis un document reçu (`partiduo-document`)::
   L'application d'origine ajoutait un virement depuis l'extension des

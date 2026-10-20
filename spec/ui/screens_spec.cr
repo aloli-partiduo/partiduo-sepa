@@ -91,10 +91,24 @@ describe "Écrans des paiements SEPA sous /ext/SEPA/ (ADR-005)" do
     over.html.should contain("Le montant dépasse ce qui reste ouvert")
 
     prepared = browser.post("#{batch_url}/prepare", {} of String => String)
-    browser.follow(prepared).html.should contain("Lot préparé : il attend son approbation.")
-    approved = browser.post("#{batch_url}/approve", {} of String => String)
-    approved_page = browser.follow(approved).html
-    approved_page.should contain("Lot approuvé : téléchargez le fichier")
+    prepared_page = browser.follow(prepared).html
+    prepared_page.should contain("Lot préparé et soumis : il attend sa décision dans « Approbations ».")
+    prepared_page.should contain("data-sepa-approval")
+    request = present(Api.approval(S.system, batch_url.split('/').last.to_i64))
+    prepared_page.should contain(%(href="/approvals/#{request.id}"))
+
+    # L'approbation se décide dans l'écran commun, après confirmation de
+    # l'identité (TOTP) : l'ancienne adresse du lot y renvoie.
+    to_common = browser.post("#{batch_url}/approve", {} of String => String)
+    to_common.headers["Location"].should eq("/approvals/#{request.id}")
+    secret = PartiduoUi::Accounts.enable_totp
+    browser.post("/approvals/#{request.id}/approve", {"comment" => ""}).headers["Location"]
+      .should eq("/approvals/#{request.id}/reauth")
+    browser.post("/approvals/#{request.id}/reauth", {"code" => PartiduoUi::Accounts.totp_code(secret, Time.utc + 30.seconds)})
+      .status.should eq(302)
+    browser.post("/approvals/#{request.id}/approve", {"comment" => "Vu"}).status.should eq(302)
+    approved_page = browser.get(batch_url).html
+    approved_page.should contain("Approuvé, à émettre")
     approved_page.should contain("pain.001.001.09")
     approved_page.should contain("Confirmer l'émission")
     file = browser.get("#{batch_url}/file")
@@ -131,17 +145,22 @@ describe "Écrans des paiements SEPA sous /ext/SEPA/ (ADR-005)" do
     list.should contain("BE68 **** **** 7034")
     list.should contain("Premier (FRST)")
 
+    # L'ICS et la validation sont ceux de la société : rappelés, avec un
+    # lien vers sa configuration ; plus de champ propre à l'extension.
+    S.company(creditor_identifier: S::ICS, approval_mode: "dual")
     settings = browser.get("/ext/SEPA/settings").html
-    settings.should contain("Identifiant créancier SEPA (ICS)")
-    bad = browser.post("/ext/SEPA/settings", {"approval_mode" => "dual", "settlement_mode" => "propose",
-                                              "creditor_identifier" => "FR73ZZZ123456", "ledger_id" => ""})
+    settings.should contain("L'identifiant créancier SEPA (ICS) de la société : #{S::ICS} ; validation des lots : Deux personnes.")
+    settings.should contain(%(href="/settings/company/edit"))
+    settings.should_not contain(%(name="creditor_identifier"))
+    settings.should_not contain(%(name="approval_mode"))
+    bad = browser.post("/ext/SEPA/settings", {"settlement_mode" => "never", "ledger_id" => ""})
     bad.status.should eq(422)
-    bad.html.should contain("L'identifiant créancier SEPA (ICS) est invalide.")
-    saved = browser.post("/ext/SEPA/settings", {"approval_mode" => "dual", "settlement_mode" => "propose",
-                                                "creditor_identifier" => S::ICS, "ledger_id" => S.bank.id.to_s,
+    saved = browser.post("/ext/SEPA/settings", {"settlement_mode" => "propose", "ledger_id" => S.bank.id.to_s,
                                                 "batch_booking" => "1"})
     saved.status.should eq(302)
+    Api.settings(S.system).settlement_mode.should eq("propose")
     Api.settings(S.system).dual?.should be_true
+    Api.settings(S.system).creditor_identifier.should eq(S::ICS)
   end
 
   it "refuse la composition et l'approbation à qui ne peut que consulter (403)" do

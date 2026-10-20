@@ -43,6 +43,26 @@ describe "Lots de virements fournisseurs (pain.001.001.09, D-SEPA-003, D-SEPA-00
     Api.candidates(S.preparer, batch.id).size.should eq(2)
   end
 
+  it "lit les écritures ouvertes en une fois (open_items) : ni lettrage partiel, ni facture déjà réglée, même par un paiement daté plus tard" do
+    S.setup
+    S.supplier("Fournitures Alpha", "ALPHA")
+    S.supplier("Béta Logistique GmbH", "BETA", iban: S::GERMAN_IBAN)
+    partial = S.purchase("ALPHA", "100", "2026-09-10")
+    later = S.purchase("ALPHA", "50", "2026-09-11")
+    upcoming = S.purchase("BETA", "10", "2026-10-15")
+    kept = S.purchase("BETA", "20", "2026-09-12")
+    pay = ->(line : Acc::EntryLineView, amount : String, day : String) do
+      Acc.post_financial(S.system, Acc::FinancialInput.new(ledger_id: S.bank.id, date: S.date(day),
+        lines: [Acc::PaymentLineInput.new(S.d("-#{amount}"), card: line.card_code.to_s, match_line_ids: [line.id])])).value!
+    end
+    pay.call(S.line_of(partial, "ALPHA"), "70", "2026-10-01")
+    pay.call(S.line_of(later, "ALPHA"), "60", "2026-10-20")
+    batch = S.batch
+    candidates = Api.candidates(S.preparer, batch.id)
+    candidates.map(&.line_id).sort!.should eq([S.line_of(kept, "BETA").id, S.line_of(upcoming, "BETA").id].sort!)
+    candidates.map(&.amount).sort!.should eq([S.d("12"), S.d("24")])
+  end
+
   it "compose le lot : montant ouvert, communication, référence de bout en bout ; une écriture n'entre qu'une fois" do
     batch, first, _ = composed
     batch.items.size.should eq(2)
@@ -141,12 +161,12 @@ describe "Lots de virements fournisseurs (pain.001.001.09, D-SEPA-003, D-SEPA-00
     Sepa::Structure.problems(xml, "transfer").should be_empty
   end
 
-  it "en validation à deux, refuse que le préparateur approuve ; une autre personne approuve" do
+  it "en validation à deux (réglage de la société), refuse que le préparateur approuve ; une autre personne approuve" do
     batch, _, _ = composed
-    S.settings(approval_mode: "dual")
+    S.company(approval_mode: "dual")
     preparer_and_approver = S.actor("bruno@example.com", [Api::READ, Api::PREPARE, Api::APPROVE] + S::CORE_PERMISSIONS)
     Api.prepare(preparer_and_approver, batch.id).value!
-    Api.approve(preparer_and_approver, batch.id).error_keys.should eq(["sepa.errors.approval.same_person"])
+    Api.approve(preparer_and_approver, batch.id).error_keys.should eq(["core.errors.approval.same_person"])
     approved = Api.approve(S.accountant, batch.id).value!
     approved.approval_mode.should eq("dual")
     approved.approved_by_id.should eq(S.user_id("alice@example.com"))

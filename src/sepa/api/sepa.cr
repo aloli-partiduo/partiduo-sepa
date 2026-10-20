@@ -8,10 +8,12 @@ module Sepa
   # `Result` avec ses erreurs par champ, dans une transaction. L'interface
   # de l'extension (`ui/bulma/`) ne voit que ce module et `Partiduo::Api`.
   #
-  # Cycle d'un lot (D-SEPA-005) : `draft` (composer) → `prepare` (contrôlé
-  # et figé) → `approve` (fichier produit, contrôlé, conservé) →
-  # `confirm_issue` (émission confirmée, règlements passés ou proposés).
-  # `reopen` ramène un lot préparé ou approuvé en préparation. Aucun envoi
+  # Cycle d'un lot (D-SEPA-005, D-SEPA-017) : `draft` (composer) →
+  # `prepare` (contrôlé, figé et soumis au service d'approbation du socle) →
+  # approbation (écran commun « Approbations », ou `approve` : fichier
+  # produit, contrôlé, conservé) → `confirm_issue` (émission confirmée,
+  # règlements passés ou proposés). `reopen` ramène un lot préparé ou
+  # approuvé en préparation (la demande en attente est retirée). Aucun envoi
   # à la banque : l'utilisateur dépose le fichier lui-même.
   #
   # Référence : `doc/api/sepa.adoc`.
@@ -76,13 +78,12 @@ module Sepa
       Settings.view
     end
 
+    # Réglages propres à l'extension. L'ICS et la validation à une ou deux
+    # personnes se règlent dans la société (D-SEPA-016, D-SEPA-017).
     def self.update_settings(actor : Actor, input : SettingsInput) : Result(SettingsView)
       authorize!(actor, ADMIN)
       errors = [] of FieldError
-      errors << Records.error("approval_mode", "choice.invalid", {"value" => input.approval_mode}) unless APPROVAL_MODES.includes?(input.approval_mode)
       errors << Records.error("settlement_mode", "choice.invalid", {"value" => input.settlement_mode}) unless SETTLEMENT_MODES.includes?(input.settlement_mode)
-      ics = Codes.compact(input.creditor_identifier)
-      errors << Records.error("creditor_identifier", "settings.ics_invalid") unless ics.empty? || Codes.valid_ics?(ics)
       input.ledger_id.try { |id| Records.financial_ledger(actor, id, "ledger_id", errors) }
       return Result(SettingsView).failure(errors) unless errors.empty?
       Transaction.run do
@@ -215,7 +216,8 @@ module Sepa
     end
 
     # Supprime un lot en préparation ou préparé (un lot approuvé se rouvre
-    # d'abord ; un lot émis est conservé).
+    # d'abord ; un lot émis est conservé). La demande d'approbation en
+    # attente d'un lot préparé est retirée.
     def self.delete_batch(actor : Actor, id : Int64) : Result(Nil)
       authorize!(actor, PREPARE)
       Transaction.run do
@@ -223,6 +225,7 @@ module Sepa
         unless row.status.in?("draft", "prepared")
           next Result(Nil).failure(Records.error(FieldError::BASE, "batch.not_deletable"))
         end
+        Approval.withdraw(id, "deleted")
         row.delete
         Result(Nil).success(nil)
       end
@@ -298,7 +301,6 @@ module Sepa
         next draft_only(ItemView) unless batch.status == "draft"
         limit = row.entry_line_id.try do |line_id|
           Candidates.open_amount(actor, row.card_code.to_s, batch.kind.to_s, line_id.to_i64)
-            .try { |line| batch.kind == "debit" ? line.debit : line.credit }
         end
         errors = Items.item_errors(actor, batch, input, limit)
         if row.entry_line_id && Records.card(actor, input.card_code).try(&.code) != row.card_code
@@ -338,8 +340,11 @@ module Sepa
       errors.empty? ? Result(Nil).success(nil) : Result(Nil).failure(errors)
     end
 
-    # Prépare le lot (D-SEPA-005) : contrôle complet, puis le lot est figé
-    # en attente d'approbation ; séquences des prélèvements arrêtées.
+    # Prépare le lot (D-SEPA-005, D-SEPA-017) : contrôle complet, puis le lot
+    # est figé (séquences des prélèvements arrêtées) et soumis au service
+    # d'approbation du socle, avec l'empreinte de son contenu, au nom de la
+    # personne qui prépare. Erreurs : celles du contrôle, et
+    # `core.errors.approval.*` du service (`person_required`…).
     def self.prepare(actor : Actor, id : Int64) : Result(BatchView)
       authorize!(actor, PREPARE)
       Transaction.run do
@@ -353,58 +358,48 @@ module Sepa
         batch.prepared_by_id = actor.user_id
         batch.prepared_at = Partiduo::Config.now
         batch.save!
+        submitted = Approval.submit(actor, batch)
+        next Result(BatchView).failure(submitted.errors) if submitted.failure?
         Result(BatchView).success(Records.batch_view(actor, batch))
       end
     end
 
-    # Approuve un lot préparé (D-SEPA-005) : en validation à deux, par une
-    # autre personne que celle qui l'a préparé. Le fichier ISO 20022 est
-    # produit, contrôlé (structure, et XSD officiel s'il est déposé), puis
-    # conservé en pièce jointe par le socle. Exige aussi
-    # `core.attachment.write`. Erreurs : `sepa.errors.approval.*`,
-    # `.file.invalid`, celles de `prepare`, celles du socle.
-    def self.approve(actor : Actor, id : Int64) : Result(BatchView)
+    # Demande d'approbation la plus récente du lot (en attente, approuvée,
+    # rejetée ou retirée), si l'acteur la voit (qui l'a soumise, décidée, ou
+    # peut la décider) : l'écran du lot en montre l'état et renvoie à l'écran
+    # commun « Approbations ».
+    def self.approval(actor : Actor, id : Int64) : Partiduo::Api::Approvals::ApprovalView?
+      authorize!(actor, READ)
+      Records.batch!(actor, id)
+      Partiduo::Api::Approvals.latest(actor, MODULE_CODE, APPROVAL_KIND, Approval.subject(id))
+    end
+
+    # Approuve un lot préparé par le service commun (D-SEPA-017) :
+    # `Partiduo::Api::Approvals.approve` de sa demande en attente, qui exige
+    # la permission `sepa.approve`, une authentification forte récente et, en
+    # validation à deux (réglage de la société), une autre personne que
+    # celle qui l'a préparé. Le gestionnaire de l'extension produit alors le
+    # fichier ISO 20022, le contrôle (structure, et XSD officiel s'il est
+    # déposé), consomme l'approbation pour l'empreinte soumise et conserve le
+    # fichier en pièce jointe. Même chemin que l'écran « Approbations ».
+    # Exige aussi `core.attachment.write`. Erreurs : `sepa.errors.approval.*`,
+    # `.file.invalid`, celles de `prepare`, `core.errors.approval.*`
+    # (`same_person`, `reauthentication_required`…), celles du socle.
+    def self.approve(actor : Actor, id : Int64, comment : String = "") : Result(BatchView)
       authorize!(actor, APPROVE)
       Guard.authorize!(actor, ATTACHMENT_PERMISSION)
-      Transaction.run do
-        batch = Records.batch!(actor, id, lock: true)
-        next Result(BatchView).failure(Records.error(FieldError::BASE, "approval.not_prepared")) unless batch.status == "prepared"
-        mode = Settings.view.approval_mode
-        if mode == "dual" && (actor.user_id.nil? || actor.user_id == batch.prepared_by_id.try(&.to_i64))
-          next Result(BatchView).failure(Records.error(FieldError::BASE, "approval.same_person"))
-        end
-        items = Item.filter(batch_id: id).order(:position).to_a
-        errors = Preparation.errors(actor, batch, items)
-        next Result(BatchView).failure(errors) unless errors.empty?
-        account = Preparation.account(actor, batch, errors) || raise "compte du lot introuvable"
-        now = Partiduo::Config.now
-        message_id = XmlBuilder.message_id(id, now)
-        addresses = Producer.addresses(items)
-        content = XmlBuilder.build(XmlBuilder::Input.new(batch, items, account, Settings.view.creditor_identifier, message_id,
-          now, addresses))
-        problems = Producer.problems(content, batch.kind.to_s)
-        unless problems.empty?
-          next Result(BatchView).failure(Records.error(FieldError::BASE, "file.invalid",
-            {"detail" => problems.first(5).join(" ; ")}))
-        end
-        view = Records.batch_view(actor, batch)
-        stored = Partiduo::Api::Core.store_attachment(actor, Partiduo::Api::Core::AttachmentInput.new(
-          view.filename, "application/xml", IO::Memory.new(content)))
-        next Result(BatchView).failure(stored.errors) if stored.failure?
-        batch.status = "approved"
-        batch.approval_mode = mode
-        batch.approved_by_id = actor.user_id
-        batch.approved_at = now
-        batch.message_id = message_id
-        batch.attachment_id = stored.value!.id
-        batch.file_sha256 = stored.value!.sha256
-        batch.save!
-        Result(BatchView).success(Records.batch_view(actor, batch))
-      end
+      batch = Records.batch!(actor, id)
+      return Result(BatchView).failure(Records.error(FieldError::BASE, "approval.not_prepared")) unless batch.status == "prepared"
+      request = Approval.pending(id)
+      return Result(BatchView).failure(Records.error(FieldError::BASE, "approval.not_submitted")) if request.nil?
+      decided = Partiduo::Api::Approvals.approve(actor, request.id, comment)
+      return Result(BatchView).failure(decided.errors) if decided.failure?
+      Result(BatchView).success(Records.batch_view(actor, Records.batch!(actor, id)))
     end
 
-    # Ramène en préparation un lot préparé ou approuvé (non émis) ; le
-    # fichier d'un lot approuvé est retiré (il n'a pas été déposé).
+    # Ramène en préparation un lot préparé ou approuvé (non émis) ; la
+    # demande d'approbation en attente est retirée, le fichier d'un lot
+    # approuvé est retiré (il n'a pas été déposé).
     def self.reopen(actor : Actor, id : Int64) : Result(BatchView)
       authorize!(actor, PREPARE)
       Transaction.run do
@@ -413,6 +408,7 @@ module Sepa
           next Result(BatchView).failure(Records.error(FieldError::BASE, "batch.not_reopenable"))
         end
         attachment_id = batch.attachment_id.try(&.to_i64)
+        Approval.withdraw(id, "reopened")
         Preparation.unfreeze!(Item.filter(batch_id: id).to_a)
         batch.status = "draft"
         batch.prepared_by_id = nil
@@ -498,12 +494,13 @@ module Sepa
       TileView.new(rows.count(&.status.==("prepared")), rows.count(&.status.==("approved")), to_settle)
     end
 
-    # Compteur du menu : lots qui attendent l'acteur (à approuver ou à
-    # émettre s'il approuve, rien sinon).
+    # Compteur du menu : lots approuvés qui attendent d'être émis, pour qui
+    # approuve. Les lots à approuver sont comptés par l'écran commun
+    # « Approbations » (menu et « À traiter » de l'interface, D-SEPA-017).
     def self.pending_count(actor : Actor) : Int64?
       view = tile(actor) || return
       return 0_i64 unless actor.can?(APPROVE)
-      (view.to_approve + view.to_issue).to_i64
+      view.to_issue.to_i64
     end
 
     # --- Outils ----------------------------------------------------------------------

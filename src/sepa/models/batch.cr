@@ -11,8 +11,9 @@ module Sepa
   #   (émission confirmée par l'utilisateur, `issued_on`) ;
   # * `message_id`, `attachment_id`, `file_sha256` : fichier ISO 20022
   #   produit à l'approbation, conservé par le socle (sans clé étrangère) ;
-  # * `approval_mode` : mode de validation appliqué (`single`, `dual`),
-  #   figé à l'approbation (D-SEPA-005).
+  # * `approval_mode` : mode de validation de la décision (`single`,
+  #   `dual`), réglage de la société lu par le service d'approbation du
+  #   socle, inscrit à l'approbation (D-SEPA-017).
   #
   # Interne.
   class Batch < Marten::Model

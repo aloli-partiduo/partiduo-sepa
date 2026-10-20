@@ -26,7 +26,8 @@ module Sepa
       posted = [] of Item
       elsewhere = [] of Item
       failed = [] of Item
-      open = {} of String => Array(Acc::StatementLineView)?
+      open = nil.as(Hash(Int64, Acc::PartyOpenItemView)?)
+      known = {} of String => Bool
       rows.each do |row|
         next unless row.settlement == "none"
         if entry_id = existing_entry(actor, row)
@@ -36,14 +37,16 @@ module Sepa
         end
         line_id = row.entry_line_id.try(&.to_i64)
         if line_id
-          lines = open.put_if_absent(row.card_code.to_s) { Candidates.open_lines?(actor, row.card_code.to_s, batch.kind.to_s) }
-          if lines.nil?
-            Records.store_error(row, Records.error("card_code", "item.card.unknown", {"code" => row.card_code.to_s}))
+          code = row.card_code.to_s
+          unless known.put_if_absent(code) { !Records.card(actor, code).nil? }
+            Records.store_error(row, Records.error("card_code", "item.card.unknown", {"code" => code}))
             row.save!
             failed << row
             next
           end
-          unless lines.any?(&.line_id.==(line_id))
+          # Écritures ouvertes relues une fois pour tout le lot (D-SEPA-015).
+          lines = open ||= Candidates.open_index(actor, batch.kind.to_s)
+          unless lines[line_id]?.try(&.card_code.==(code))
             row.settlement = "elsewhere"
             Records.store_error(row, nil)
             row.save!

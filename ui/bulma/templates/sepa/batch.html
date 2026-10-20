@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Un lot de paiements SEPA (D-SEPA-003, D-SEPA-005) : faits (genre, journal, date, total, statut, fichier), contrôle du lot en préparation, paiements (_item.html, corrigés en HTMX), écritures ouvertes à cocher pour les ajouter (formulaire sepa-add), saisie d'un paiement, confirmation de l'émission d'un lot approuvé. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Un lot de paiements SEPA (D-SEPA-003, D-SEPA-005, D-SEPA-017) : faits (genre, journal, date, total, statut, fichier), état de la demande d'approbation d'un lot préparé (écran commun « Approbations »), contrôle du lot en préparation, paiements (_item.html, corrigés en HTMX), écritures ouvertes à cocher pour les ajouter (formulaire sepa-add), saisie d'un paiement, confirmation de l'émission d'un lot approuvé. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block scripts %}<link rel="stylesheet" href="{% asset 'sepa/css/sepa.css' %}">{% endblock scripts %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
@@ -20,9 +20,22 @@
       {% if batch.approval_mode %}<div><dt>{% translate "sepa_ui.batch.approval" %}</dt><dd>{{ batch.approval_mode }}</dd></div>{% endif %}
       {% if batch.issued_on %}<div><dt>{% translate "sepa_ui.batch.issued_on" %}</dt><dd>{{ batch.issued_on }}</dd></div>{% endif %}
     </dl>
-    {% if awaiting_other %}<p class="help mt-3" data-sepa-awaiting>{% translate "sepa_ui.batch.awaiting_other" %}</p>{% endif %}
   </div>
 </section>
+{% if approval %}
+<section class="pd-panel" aria-labelledby="sepa-approval-title" data-sepa-approval>
+  <header><h2 id="sepa-approval-title">{% translate "sepa_ui.approval.title" %}</h2><span class="tag {{ approval.status_class }} is-light" data-sepa-approval-status>{{ approval.status }}</span></header>
+  <div class="pd-body">
+    <dl class="sepa-facts">
+      <div><dt>{% translate "sepa_ui.approval.mode" %}</dt><dd>{{ approval.mode }}</dd></div>
+      {% if approval.requested %}<div><dt>{% translate "sepa_ui.approval.submitted" %}</dt><dd>{{ approval.requested }}</dd></div>{% endif %}
+      {% if approval.comment %}<div><dt>{% translate "sepa_ui.approval.comment" %}</dt><dd>{{ approval.comment }}</dd></div>{% endif %}
+    </dl>
+    <p class="help mt-3" data-sepa-approval-note>{{ approval.note }}</p>
+    {% if approval.url %}<p class="mt-3"><a class="button pd-touch" href="{{ approval.url }}" data-sepa-approval-link>{% include "ui/_icon.html" with name="shield-check" %}<span>{% translate "sepa_ui.approval.open" %}</span></a></p>{% endif %}
+  </div>
+</section>
+{% endif %}
 {% if draft %}
 <section class="pd-panel" aria-labelledby="sepa-check-title">
   <header><h2 id="sepa-check-title">{% translate "sepa_ui.batch.check" %}</h2></header>

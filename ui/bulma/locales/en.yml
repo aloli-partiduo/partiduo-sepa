@@ -1,8 +1,8 @@
 en:
   sepa_ui:
     todo:
-      one: "%{count} SEPA batch to approve or issue"
-      other: "%{count} SEPA batches to approve or issue"
+      one: "%{count} SEPA batch to issue"
+      other: "%{count} SEPA batches to issue"
     tile:
       label: "SEPA payments"
       sub:
@@ -42,7 +42,6 @@ en:
       message_id: "Message identifier"
       approval: "Approval"
       issued_on: "Issuance date"
-      awaiting_other: "Two-person approval: someone else must approve this batch."
       check: "Batch check"
       ready: "The batch is ready to be prepared."
       issue: "Confirm issuance"
@@ -51,12 +50,24 @@ en:
       prepare: "Prepare"
       delete: "Delete"
       delete_confirm: "Delete this batch and its payments?"
-      approve: "Approve and produce the file"
-      approve_confirm: "Approve this batch? The ISO 20022 file will be produced and kept."
+      approve: "Approve"
+      no_pending_approval: "This batch has no pending approval request."
       reopen: "Reopen"
       reopen_confirm: "Reopen this batch? The file produced will be withdrawn: do not upload it to the bank."
       download: "Download the file"
       settle: "Post settlements"
+    approval:
+      title: "Approval"
+      mode: "File rule"
+      submitted: "Submitted"
+      comment: "Comment"
+      open: "Open in “Approvals”"
+      none: "No pending request"
+      none_help: "This prepared batch has no pending approval request (rejected, withdrawn or from an earlier version): reopen it, then prepare it again."
+      pending_help: "The decision is taken in the “Approvals” screen, after confirming one’s identity; the file is then produced."
+      awaiting_other: "Two-person approval: someone else must approve this batch."
+      closed_help: "The request is no longer pending: reopen the batch to correct it, then prepare it again."
+      requested: "by %{name}, on %{date}"
     items:
       title: "Payments"
       none: "No payment: add open entries or enter a payment."
@@ -121,15 +132,16 @@ en:
         other: "%{count} collections issued; mandate %{status}."
     settings:
       intro: "SEPA payment settings of the file."
+      intro_company: "SEPA payment settings of the file. Company SEPA creditor identifier (CI): %{ics}; batch approval: %{mode}. Both are set in the company settings."
       validation: "Approval"
-      approval_mode: "Batch approval"
-      approval_help: "Two people: whoever approves a batch is not whoever prepared it (same setting as the two-person approval of the administration)."
       settlement_mode: "When issuance is confirmed"
       settlement_help: "Propose: useful if settlements come from the imported statement; a payment already settled elsewhere is never posted twice."
       bank: "Bank"
       ledger: "Proposed financial ledger"
-      creditor_identifier: "SEPA creditor identifier (CI)"
-      creditor_identifier_help: "Assigned by your bank (in France, by the Banque de France), required for direct debits."
+      company: "Company settings"
+      company_ics_blank: "not set"
+      legacy_discard: "Forget the extension’s former CI (%{ics})"
+      legacy_help: "The former extension settings held the CI %{ics}, different from the company’s (%{company}), which is now used: check which one your bank assigned you, correct the company if needed, then forget the former one."
     flash:
       saved: "Saved."
       batch_created: "Batch opened: add payments to it."
@@ -140,8 +152,7 @@ en:
       item_added: "Payment added."
       item_saved: "Payment saved."
       item_removed: "Payment removed."
-      prepared: "Batch prepared: it awaits approval."
-      approved: "Batch approved: download the file and upload it to the bank."
+      prepared: "Batch prepared and submitted: it awaits a decision in “Approvals”."
       reopened: "Batch reopened for preparation."
       issued:
         one: "Issuance confirmed; %{count} settlement posted."

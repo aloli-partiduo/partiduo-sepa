@@ -72,8 +72,8 @@ describe "Extension SEPA : manifeste et activation (ADR-003 D2)" do
   rescue ex : PQ::PQError
     ex.message
     end
-    sql_error.call("INSERT INTO sepa_setting (approval_mode, settlement_mode, batch_booking, creditor_identifier, created_at, " \
-                   "updated_at) VALUES ('triple', 'post', TRUE, '', now(), now())").to_s.should contain("sepa_setting_approval_check")
+    sql_error.call("INSERT INTO sepa_setting (settlement_mode, batch_booking, created_at, updated_at) " \
+                   "VALUES ('never', TRUE, now(), now())").to_s.should contain("sepa_setting_settlement_check")
     batch = S.batch
     sql_error.call("UPDATE sepa_batch SET status = 'approved' WHERE id = #{batch.id}").to_s.should contain("sepa_batch_file_check")
     sql_error.call("INSERT INTO sepa_item (batch_id, position, card_code, name, amount, settlement, created_at, updated_at) " \

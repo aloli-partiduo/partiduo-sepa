@@ -89,6 +89,37 @@ module Sepa
         })
       end
 
+      # État de la demande d'approbation d'un lot préparé (D-SEPA-017) :
+      # statut, personne et date de la soumission, règle du dossier, ce qui
+      # reste à faire, motif d'un rejet, lien vers l'écran commun.
+      def self.approval(view : Partiduo::Api::Approvals::ApprovalView?, settings : Api::SettingsView,
+                        actor : Partiduo::Api::Actor, fmt : PartiduoUi::Format) : Row
+        mode = I18n.t("sepa.approval_modes.#{settings.approval_mode}")
+        if view.nil?
+          return Ui.row({"status" => I18n.t("sepa_ui.approval.none"), "mode" => mode, "status_class" => "is-warning",
+                         "note" => I18n.t("sepa_ui.approval.none_help")})
+        end
+        note = if view.pending?
+                 if settings.dual? && view.requested_by_id == actor.user_id
+                   I18n.t("sepa_ui.approval.awaiting_other")
+                 else
+                   I18n.t("sepa_ui.approval.pending_help")
+                 end
+               else
+                 I18n.t("sepa_ui.approval.closed_help")
+               end
+        Ui.row({
+          "status"       => I18n.t(view.status_key),
+          "status_class" => view.pending? ? "is-warning" : "is-danger",
+          "mode"         => mode,
+          "requested"    => I18n.t("sepa_ui.approval.requested", name: view.requested_by_name.presence || "—",
+            date: fmt.datetime(view.requested_at)),
+          "comment" => view.comment.presence,
+          "note"    => note,
+          "url"     => Marten.routes.reverse("core:approval", id: view.id),
+        })
+      end
+
       def self.batch(view : Api::BatchView, fmt : PartiduoUi::Format) : Row
         Ui.row({
           "id"            => view.id.to_s,

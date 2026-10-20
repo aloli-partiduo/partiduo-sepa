@@ -42,6 +42,14 @@ fr:
       none: "Règlement à passer"
       posted: "Règlement passé"
       elsewhere: "Réglé ailleurs"
+    approval:
+      summary: "Lot SEPA n° %{id} : %{kind} au %{date}"
+      details:
+        kind: "Genre"
+        ledger: "Journal financier"
+        requested_on: "Date d'exécution ou d'échéance"
+        count: "Paiements"
+        schema: "Format"
     errors:
       choice:
         invalid: "Valeur non admise : %{value}."
@@ -70,7 +78,7 @@ fr:
         not_business_day: "Ce jour n'est pas ouvré pour les paiements SEPA ; prochain jour ouvré : %{next}."
         too_far: "La date d'exécution est à plus d'un an."
       settings:
-        ics_blank: "Renseignez l'identifiant créancier SEPA (ICS) dans les réglages."
+        ics_blank: "Renseignez l'identifiant créancier SEPA (ICS) dans la configuration de la société."
         ics_invalid: "L'identifiant créancier SEPA (ICS) est invalide."
       iban:
         blank: "Indiquez l'IBAN."
@@ -125,7 +133,10 @@ fr:
         in_use: "Ce mandat a servi à un paiement : révoquez-le plutôt."
       approval:
         not_prepared: "Seul un lot préparé s'approuve."
-        same_person: "Validation à deux personnes : le lot doit être approuvé par une autre personne que celle qui l'a préparé."
+        not_submitted: "Ce lot n'a pas de demande d'approbation en attente : rouvrez-le puis préparez-le de nouveau."
+        changed: "Le lot a changé depuis sa soumission (paiements, compte bancaire ou ICS) : rouvrez-le puis préparez-le de nouveau."
+        attachment_permission: "Approuver un lot produit son fichier : il faut aussi le droit d'enregistrer des pièces jointes."
+        forbidden: "Ce lot ne vous est pas accessible (journal ou écritures) : vous ne pouvez pas l'approuver."
       file:
         invalid: "Le fichier produit n'est pas conforme : %{detail}."
       issue:

@@ -42,6 +42,14 @@ nl:
       none: "Betaling te boeken"
       posted: "Betaling geboekt"
       elsewhere: "Elders vereffend"
+    approval:
+      summary: "SEPA-batch nr. %{id}: %{kind} op %{date}"
+      details:
+        kind: "Soort"
+        ledger: "Financieel dagboek"
+        requested_on: "Uitvoerings- of vervaldatum"
+        count: "Betalingen"
+        schema: "Formaat"
     errors:
       choice:
         invalid: "Waarde niet toegestaan: %{value}."
@@ -70,7 +78,7 @@ nl:
         not_business_day: "Deze dag is geen werkdag voor SEPA-betalingen; volgende werkdag: %{next}."
         too_far: "De uitvoeringsdatum ligt meer dan een jaar verder."
       settings:
-        ics_blank: "Vul de SEPA-schuldeisersidentificatie (CI) in bij de instellingen."
+        ics_blank: "Vul de SEPA-schuldeisersidentificatie (CI) in bij de instellingen van de onderneming."
         ics_invalid: "De SEPA-schuldeisersidentificatie (CI) is ongeldig."
       iban:
         blank: "Vul het IBAN in."
@@ -125,7 +133,10 @@ nl:
         in_use: "Dit mandaat werd voor een betaling gebruikt: herroep het liever."
       approval:
         not_prepared: "Enkel een voorbereide batch kan worden goedgekeurd."
-        same_person: "Goedkeuring door twee personen: de batch moet worden goedgekeurd door iemand anders dan wie hem voorbereidde."
+        not_submitted: "Deze batch heeft geen openstaande goedkeuringsaanvraag: heropen hem en bereid hem opnieuw voor."
+        changed: "De batch is gewijzigd sinds hij werd ingediend (betalingen, bankrekening of CI): heropen hem en bereid hem opnieuw voor."
+        attachment_permission: "Een batch goedkeuren maakt zijn bestand aan: ook het recht om bijlagen te bewaren is vereist."
+        forbidden: "Deze batch is voor u niet toegankelijk (dagboek of boekingen): u kunt hem niet goedkeuren."
       file:
         invalid: "Het aangemaakte bestand is niet conform: %{detail}."
       issue:

@@ -10,7 +10,7 @@ private alias Acc = Partiduo::Api::Accounting
 # chacun, l'ICS réglé.
 private def debit_setup : {Api::MandateView, Api::MandateView}
   S.setup
-  S.settings(creditor_identifier: "fr72 zzz 123456")
+  S.company(creditor_identifier: "fr72 zzz 123456")
   S.customer("Menuiserie Leroux", "LEROUX")
   S.customer("Atelier Morel", "MOREL")
   S.customer("Sans mandat", "NOMANDATE")
@@ -110,11 +110,11 @@ describe "Prélèvements SEPA Core sur mandats (pain.008.001.08, D-SEPA-007)" do
 
   it "refuse un mandat révoqué ou expiré, et l'ICS absent" do
     leroux, _ = debit_setup
-    S.settings(creditor_identifier: "")
+    S.company(creditor_identifier: "")
     batch = S.batch("debit", "2026-10-12")
     Api.add_open_items(S.preparer, batch.id, Api.candidates(S.preparer, batch.id).map(&.line_id)).value!
     Api.prepare(S.preparer, batch.id).error_keys.should eq(["sepa.errors.settings.ics_blank"])
-    S.settings(creditor_identifier: S::ICS)
+    S.company(creditor_identifier: S::ICS)
     Api.revoke_mandate(S.accountant, leroux.id).value!.status.should eq("revoked")
     Api.prepare(S.preparer, batch.id).error_keys.should eq(["sepa.errors.item.mandate_inactive"])
     Api.delete_mandate(S.accountant, leroux.id).error_keys.should eq(["sepa.errors.mandate.in_use"])

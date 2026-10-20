@@ -1,8 +1,8 @@
 nl:
   sepa_ui:
     todo:
-      one: "%{count} SEPA-batch goed te keuren of te verzenden"
-      other: "%{count} SEPA-batches goed te keuren of te verzenden"
+      one: "%{count} SEPA-batch te verzenden"
+      other: "%{count} SEPA-batches te verzenden"
     tile:
       label: "SEPA-betalingen"
       sub:
@@ -42,7 +42,6 @@ nl:
       message_id: "Berichtidentificatie"
       approval: "Goedkeuring"
       issued_on: "Verzenddatum"
-      awaiting_other: "Goedkeuring door twee personen: iemand anders moet deze batch goedkeuren."
       check: "Controle van de batch"
       ready: "De batch is klaar om voorbereid te worden."
       issue: "Verzending bevestigen"
@@ -51,12 +50,24 @@ nl:
       prepare: "Voorbereiden"
       delete: "Verwijderen"
       delete_confirm: "Deze batch en zijn betalingen verwijderen?"
-      approve: "Goedkeuren en het bestand aanmaken"
-      approve_confirm: "Deze batch goedkeuren? Het ISO 20022-bestand wordt aangemaakt en bewaard."
+      approve: "Goedkeuren"
+      no_pending_approval: "Deze batch heeft geen openstaande goedkeuringsaanvraag."
       reopen: "Heropenen"
       reopen_confirm: "Deze batch heropenen? Het aangemaakte bestand wordt ingetrokken: laad het niet op bij de bank."
       download: "Het bestand downloaden"
       settle: "Betalingen boeken"
+    approval:
+      title: "Goedkeuring"
+      mode: "Regel van het dossier"
+      submitted: "Ingediend"
+      comment: "Opmerking"
+      open: "Openen in „Goedkeuringen”"
+      none: "Geen openstaande aanvraag"
+      none_help: "Deze voorbereide batch heeft geen openstaande goedkeuringsaanvraag (geweigerd, ingetrokken of van een vorige versie): heropen hem en bereid hem opnieuw voor."
+      pending_help: "De beslissing wordt genomen in het scherm „Goedkeuringen”, na bevestiging van de identiteit; het bestand wordt dan aangemaakt."
+      awaiting_other: "Goedkeuring door twee personen: iemand anders moet deze batch goedkeuren."
+      closed_help: "De aanvraag staat niet meer open: heropen de batch om hem te verbeteren en bereid hem opnieuw voor."
+      requested: "door %{name}, op %{date}"
     items:
       title: "Betalingen"
       none: "Geen betaling: voeg openstaande boekingen toe of voer een betaling in."
@@ -121,15 +132,16 @@ nl:
         other: "%{count} inningen verzonden; mandaat %{status}."
     settings:
       intro: "Instellingen van de SEPA-betalingen van het dossier."
+      intro_company: "Instellingen van de SEPA-betalingen van het dossier. SEPA-schuldeisersidentificatie (CI) van de onderneming: %{ics}; goedkeuring van de batches: %{mode}. Beide worden ingesteld bij de instellingen van de onderneming."
       validation: "Goedkeuring"
-      approval_mode: "Goedkeuring van de batches"
-      approval_help: "Twee personen: wie een batch goedkeurt, is niet wie hem voorbereidde (dezelfde instelling als de goedkeuring door twee personen van het beheer)."
       settlement_mode: "Bij de bevestiging van de verzending"
       settlement_help: "Voorstellen: nuttig als de betalingen uit het ingelezen uittreksel komen; een elders vereffende betaling wordt nooit twee keer geboekt."
       bank: "Bank"
       ledger: "Voorgesteld financieel dagboek"
-      creditor_identifier: "SEPA-schuldeisersidentificatie (CI)"
-      creditor_identifier_help: "Toegekend door uw bank, onmisbaar voor domiciliëringen."
+      company: "Instellingen van de onderneming"
+      company_ics_blank: "niet ingevuld"
+      legacy_discard: "De vroegere CI van de extensie vergeten (%{ics})"
+      legacy_help: "De vroegere instellingen van de extensie bevatten de CI %{ics}, verschillend van die van de onderneming (%{company}), die nu wordt gebruikt: controleer welke uw bank u toekende, verbeter de onderneming zo nodig en vergeet dan de vroegere."
     flash:
       saved: "Opgeslagen."
       batch_created: "Batch geopend: voeg er betalingen aan toe."
@@ -140,8 +152,7 @@ nl:
       item_added: "Betaling toegevoegd."
       item_saved: "Betaling opgeslagen."
       item_removed: "Betaling weggehaald."
-      prepared: "Batch voorbereid: hij wacht op goedkeuring."
-      approved: "Batch goedgekeurd: download het bestand en laad het op bij de bank."
+      prepared: "Batch voorbereid en ingediend: hij wacht op een beslissing in „Goedkeuringen”."
       reopened: "Batch heropend in voorbereiding."
       issued:
         one: "Verzending bevestigd; %{count} betaling geboekt."

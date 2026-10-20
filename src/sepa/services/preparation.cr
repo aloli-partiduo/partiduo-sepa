@@ -51,20 +51,21 @@ module Sepa
         errors << Records.error(FieldError::BASE, "batch.too_many", {"max" => Api::MAX_ITEMS.to_s})
       end
       if batch.kind == "debit"
-        ics = Settings.view.creditor_identifier
+        ics = Settings.creditor_identifier
         if ics.empty?
           errors << Records.error(FieldError::BASE, "settings.ics_blank")
         elsif !Codes.valid_ics?(ics)
           errors << Records.error(FieldError::BASE, "settings.ics_invalid")
         end
       end
-      open = {} of String => Array(Acc::StatementLineView)
-      items.each { |row| item_errors(actor, batch, row, open, errors) }
+      # Écritures ouvertes relues une fois pour tout le lot (D-SEPA-015).
+      open = items.any?(&.entry_line_id) ? Candidates.open_index(actor, batch.kind.to_s) : {} of Int64 => Acc::PartyOpenItemView
+      items.each { |row| item_errors(batch, row, open, errors) }
       errors
     end
 
-    private def self.item_errors(actor : Partiduo::Api::Actor, batch : Batch, row : Item,
-                                 open : Hash(String, Array(Acc::StatementLineView)), errors : Array(FieldError)) : Nil
+    private def self.item_errors(batch : Batch, row : Item, open : Hash(Int64, Acc::PartyOpenItemView),
+                                 errors : Array(FieldError)) : Nil
       field = "items[#{row.position}]"
       params = {"position" => row.position.to_s, "name" => row.name.to_s}
       errors << Records.error("#{field}.name", "item.name.blank", params) if row.name.to_s.strip.empty?
@@ -80,12 +81,11 @@ module Sepa
         iban_errors(row.iban.to_s, row.bic.to_s, field, params, errors)
       end
       if line_id = row.entry_line_id.try(&.to_i64)
-        lines = open.put_if_absent(row.card_code.to_s) { Candidates.open_lines(actor, row.card_code.to_s, batch.kind.to_s) }
-        line = lines.find(&.line_id.==(line_id))
-        if line.nil?
+        line = open[line_id]?
+        if line.nil? || line.card_code != row.card_code
           errors << Records.error("#{field}.entry_line_id", "item.line_closed", params.merge({"receipt" => row.receipt.to_s}))
         else
-          limit = batch.kind == "debit" ? line.debit : line.credit
+          limit = line.amount
           if row.amount! > limit
             errors << Records.error("#{field}.amount", "item.amount.over_open", params.merge({"amount" => limit.to_s}))
           end

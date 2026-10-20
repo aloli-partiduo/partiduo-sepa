@@ -77,8 +77,10 @@ module Sepa
       Partiduo::Api::Auth.user_by_email(system, email).try(&.id) || raise "utilisateur #{email} absent"
     end
 
-    def self.actor(email : String, permissions : Array(String)) : Partiduo::Api::Actor
-      Partiduo::Api::Actor.user(user_id(email), permissions, level: 3)
+    # Personne authentifiée au niveau 3, authentification forte récente
+    # (exigée pour approuver, A-SEPA-3) sauf `strong_auth_at` donné.
+    def self.actor(email : String, permissions : Array(String), strong_auth_at : Time? = Time.utc) : Partiduo::Api::Actor
+      Partiduo::Api::Actor.user(user_id(email), permissions, level: 3, strong_auth_at: strong_auth_at)
     end
 
     # Tous les droits de l'extension (et ceux du cœur qu'elle emploie).
@@ -106,11 +108,20 @@ module Sepa
       Partiduo::Api::Cards.update_card(system, card.id, card.to_input.copy_with(iban: iban, bic: bic)).value!
     end
 
+    # Réglages propres à l'extension.
     def self.settings(**changes) : Api::SettingsView
       current = Api.settings(accountant)
-      input = Api::SettingsInput.new(approval_mode: current.approval_mode, settlement_mode: current.settlement_mode,
-        batch_booking: current.batch_booking, creditor_identifier: current.creditor_identifier, ledger_id: current.ledger_id)
+      input = Api::SettingsInput.new(settlement_mode: current.settlement_mode, batch_booking: current.batch_booking,
+        ledger_id: current.ledger_id)
       Api.update_settings(accountant, input.copy_with(**changes)).value!
+    end
+
+    # Configuration de la société, par le contrat du cœur : identifiant
+    # créancier SEPA (`creditor_identifier`), validation à une ou deux
+    # personnes (`approval_mode`).
+    def self.company(**changes) : Partiduo::Api::Core::SettingsView
+      current = Partiduo::Api::Core.settings(system)
+      Partiduo::Api::Core.update_settings(system, current.to_input.copy_with(**changes)).value!
     end
 
     # Tiers avec IBAN et adresse (ville et pays : adresse hybride).

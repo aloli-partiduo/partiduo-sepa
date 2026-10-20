@@ -145,31 +145,31 @@ module Sepa
         composing = view.draft? && can_prepare?
         candidates = composing ? candidate_rows(view) : [] of Row
         settings = Api.settings(actor)
+        approval = view.status == "prepared" ? Api.approval(actor, view.id) : nil
         page("sepa/batch.html", {
-          "title"          => I18n.t("sepa_ui.batch.title", id: view.id),
-          "crumbs"         => crumbs({I18n.t("sepa.menu.sepa_batches"), Ui.url("batches")}, {I18n.t("sepa_ui.batch.title", id: view.id), nil}),
-          "actions"        => header_actions(view, settings),
-          "batch"          => Present.batch(view, fmt),
-          "items"          => view.items.map { |item| Present.item(item, view, fmt, can_prepare?) },
-          "debit"          => Ui.flag(view.debit?),
-          "draft"          => Ui.flag(view.draft?),
-          "batch_issued"   => Ui.flag(view.issued?),
-          "can_prepare"    => Ui.flag(composing),
-          "problems"       => problems.empty? ? nil : problems.map { |text| Ui.row({"text" => text}) },
-          "ready"          => Ui.flag(view.draft? && problems.empty?),
-          "candidates"     => candidates.empty? ? nil : candidates,
-          "add_url"        => Ui.url("batch_add", id: view.id),
-          "item_new_url"   => Ui.url("item_new", id: view.id),
-          "cards"          => composing ? card_list(view.debit? ? "customer" : "supplier") : [] of Row,
-          "manual"         => Ui.row(manual),
-          "can_issue"      => Ui.flag(can_approve? && view.status == "approved"),
-          "issue_url"      => Ui.url("batch_issue", id: view.id),
-          "today"          => Partiduo::Api::Core.today.to_s("%F"),
-          "settle_mode"    => I18n.t("sepa.settlement_modes.#{settings.settlement_mode}"),
-          "dual"           => Ui.flag(settings.dual?),
-          "awaiting_other" => Ui.flag(settings.dual? && view.status == "prepared" && view.prepared_by_id == actor.user_id),
-          "error"          => error,
-          "next"           => request.full_path,
+          "title"        => I18n.t("sepa_ui.batch.title", id: view.id),
+          "crumbs"       => crumbs({I18n.t("sepa.menu.sepa_batches"), Ui.url("batches")}, {I18n.t("sepa_ui.batch.title", id: view.id), nil}),
+          "actions"      => header_actions(view, approval),
+          "batch"        => Present.batch(view, fmt),
+          "items"        => view.items.map { |item| Present.item(item, view, fmt, can_prepare?) },
+          "debit"        => Ui.flag(view.debit?),
+          "draft"        => Ui.flag(view.draft?),
+          "batch_issued" => Ui.flag(view.issued?),
+          "can_prepare"  => Ui.flag(composing),
+          "problems"     => problems.empty? ? nil : problems.map { |text| Ui.row({"text" => text}) },
+          "ready"        => Ui.flag(view.draft? && problems.empty?),
+          "candidates"   => candidates.empty? ? nil : candidates,
+          "add_url"      => Ui.url("batch_add", id: view.id),
+          "item_new_url" => Ui.url("item_new", id: view.id),
+          "cards"        => composing ? card_list(view.debit? ? "customer" : "supplier") : [] of Row,
+          "manual"       => Ui.row(manual),
+          "can_issue"    => Ui.flag(can_approve? && view.status == "approved"),
+          "issue_url"    => Ui.url("batch_issue", id: view.id),
+          "today"        => Partiduo::Api::Core.today.to_s("%F"),
+          "settle_mode"  => I18n.t("sepa.settlement_modes.#{settings.settlement_mode}"),
+          "approval"     => view.status == "prepared" ? Present.approval(approval, settings, actor, fmt) : nil,
+          "error"        => error,
+          "next"         => request.full_path,
         }, status: status)
       end
 
@@ -193,10 +193,10 @@ module Sepa
         [] of Row
       end
 
-      private def header_actions(view : Api::BatchView, settings : Api::SettingsView) : Array(Screen::Action)
+      private def header_actions(view : Api::BatchView, approval : Partiduo::Api::Approvals::ApprovalView?) : Array(Screen::Action)
         case view.status
         when "draft"    then draft_actions(view)
-        when "prepared" then prepared_actions(view, settings)
+        when "prepared" then prepared_actions(view, approval)
         when "approved" then approved_actions(view)
         else                 issued_actions(view)
         end
@@ -209,11 +209,13 @@ module Sepa
          post_action("sepa_ui.batch.delete", Ui.url("batch_delete", id: view.id), "sepa_ui.batch.delete_confirm", "danger", "trash-2")]
       end
 
-      # En validation à deux, le préparateur ne voit pas « Approuver ».
-      private def prepared_actions(view : Api::BatchView, settings : Api::SettingsView) : Array(Screen::Action)
+      # L'approbation se décide dans l'écran commun « Approbations »
+      # (D-SEPA-017) : « Approuver » y mène, pour qui peut décider ; en
+      # validation à deux, l'écran commun le refuse au préparateur.
+      private def prepared_actions(view : Api::BatchView, approval : Partiduo::Api::Approvals::ApprovalView?) : Array(Screen::Action)
         actions = [] of Screen::Action
-        if can_approve? && !(settings.dual? && view.prepared_by_id == actor.user_id)
-          actions << post_action("sepa_ui.batch.approve", Ui.url("batch_approve", id: view.id), "sepa_ui.batch.approve_confirm", "primary", "shield-check")
+        if approval && approval.pending? && can_approve?
+          actions << link_action("sepa_ui.batch.approve", Marten.routes.reverse("core:approval", id: approval.id), "primary", "shield-check")
         end
         if can_prepare?
           actions << post_action("sepa_ui.batch.reopen", Ui.url("batch_reopen", id: view.id), nil, "", "undo-2")
@@ -284,13 +286,19 @@ module Sepa
       end
     end
 
-    class BatchApproveHandler < BatchCommandHandler
-      def command : Partiduo::Api::Result(Api::BatchView)
-        Api.approve(actor, id_param)
+    # `/ext/SEPA/batches/<id>/approve` : l'approbation se décide dans
+    # l'écran commun « Approbations » (D-SEPA-017) ; renvoie à la demande en
+    # attente du lot, sinon au lot.
+    class BatchApproveHandler < Handler
+      def get
+        approval = Api.approval(actor, id_param)
+        return go(Marten.routes.reverse("core:approval", id: approval.id)) if approval && approval.pending?
+        flash["warning"] = I18n.t("sepa_ui.batch.no_pending_approval")
+        go(Ui.url("batch", id: id_param))
       end
 
-      def success_key : String
-        "sepa_ui.flash.approved"
+      def post
+        get
       end
     end
 
