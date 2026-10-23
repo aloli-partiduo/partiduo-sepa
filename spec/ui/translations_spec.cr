@@ -4,7 +4,7 @@ require "../spec_helper"
 
 # Traductions des écrans de l'extension (ADR-005 D7) : chaque route de
 # `/ext/SEPA/` servie en `GET` (liste tirée du routeur de Marten), obtenue
-# en fr, en et nl par un administrateur, sur un lot de virements en
+# dans chaque langue livrée par un administrateur, sur un lot de virements en
 # préparation, un lot de prélèvements approuvé et deux mandats (l'un
 # utilisé). Contrôle de l'interface (`PartiduoUi::Translations`) : ni
 # marqueur de traduction absente, ni clé brute, ni interpolation non
@@ -13,7 +13,7 @@ require "../spec_helper"
 private alias S = Sepa::SpecSupport
 private alias Api = Sepa::Api
 
-describe "Traductions des écrans SEPA (fr, en, nl)" do
+describe "Traductions des écrans SEPA (langues livrées)" do
   it "rend chaque écran dans chaque langue, sans clé absente, brute ni interpolation non résolue" do
     browser = PartiduoUi::Books.admin
     S.user("bruno@example.com", "Bruno")

@@ -1,0 +1,146 @@
+pt:
+  sepa:
+    module:
+      name: "Pagamentos SEPA"
+    permissions:
+      read: "Consultar os lotes de pagamentos SEPA, as autorizações de débito e os ficheiros"
+      prepare: "Compor, preparar, reabrir e eliminar os lotes de pagamentos SEPA"
+      approve: "Aprovar os lotes SEPA, gerar o ficheiro, confirmar a emissão e lançar as liquidações"
+      admin: "Configurar os pagamentos SEPA e gerir as autorizações de débito direto"
+    menu:
+      sepa: "Pagamentos SEPA"
+      sepa_batches: "Lotes de pagamentos"
+      sepa_new: "Novo lote"
+      sepa_mandates: "Autorizações de débito"
+      sepa_settings: "Pagamentos SEPA"
+    kinds:
+      transfer: "Transferências"
+      debit: "Débitos diretos"
+    statuses:
+      draft: "Em preparação"
+      prepared: "A aprovar"
+      approved: "Aprovado, a emitir"
+      issued: "Emitido"
+    approval_modes:
+      single: "Uma pessoa"
+      dual: "Duas pessoas"
+    settlement_modes:
+      post: "Lançar as liquidações na confirmação da emissão"
+      propose: "Propor as liquidações, a lançar posteriormente"
+    mandate_kinds:
+      recurrent: "Recorrente"
+      one_off: "Pontual"
+    mandate_statuses:
+      active: "Ativa"
+      revoked: "Revogada"
+      used: "Utilizada"
+    sequences:
+      FRST: "Primeiro (FRST)"
+      RCUR: "Recorrente (RCUR)"
+      OOFF: "Pontual (OOFF)"
+    settlements:
+      none: "Liquidação a lançar"
+      posted: "Liquidação lançada"
+      elsewhere: "Liquidado noutro local"
+    approval:
+      summary: "Lote SEPA n.º %{id}: %{kind} em %{date}"
+      details:
+        kind: "Tipo"
+        ledger: "Diário financeiro"
+        requested_on: "Data de execução ou de vencimento"
+        count: "Pagamentos"
+        schema: "Formato"
+    errors:
+      choice:
+        invalid: "Valor não admitido: %{value}."
+      ledger:
+        blank: "Escolha um diário financeiro."
+        invalid: "Este diário não é um diário financeiro acessível a este utilizador."
+        currency: "O diário é mantido em %{currency}: os pagamentos SEPA são em euros."
+        iban_blank: "A ficha Banco do diário %{code} não tem IBAN."
+        iban_invalid: "O IBAN da ficha Banco do diário %{code} é inválido."
+        bic_invalid: "O BIC da ficha Banco do diário %{code} é inválido."
+      company:
+        name_blank: "Preencha a denominação social do dossier: identifica o ordenante."
+      batch:
+        debit_household: "Um dossier de agregado familiar não emite débitos diretos."
+        label:
+          too_long: "A descrição não deve exceder %{max} caracteres."
+        empty: "O lote não contém nenhum pagamento."
+        too_many: "Um lote não pode exceder %{max} pagamentos."
+        kind_frozen: "O tipo de um lote que contém pagamentos já não pode ser alterado."
+        not_draft: "Este lote já não está em preparação: reabra-o para o alterar."
+        not_deletable: "Um lote aprovado é reaberto antes de ser eliminado; um lote emitido é conservado."
+        not_reopenable: "Só um lote preparado ou aprovado, não emitido, pode ser reaberto."
+      date:
+        past: "A data de execução não pode estar no passado."
+        too_soon: "Um débito direto apresenta-se no mínimo no dia útil seguinte."
+        not_business_day: "Este dia não é útil para os pagamentos SEPA; próximo dia útil: %{next}."
+        too_far: "A data de execução está a mais de um ano."
+      settings:
+        ics_blank: "Preencha o identificador de credor SEPA (ICS) na configuração da empresa."
+        ics_invalid: "O identificador de credor SEPA (ICS) é inválido."
+      iban:
+        blank: "Indique o IBAN."
+        invalid: "IBAN inválido (país, comprimento ou dígitos de controlo)."
+      bic:
+        invalid: "BIC inválido (8 ou 11 caracteres)."
+      item:
+        none_selected: "Selecione pelo menos um lançamento."
+        line_unavailable: "O lançamento %{id} já não está em aberto ou já está num lote."
+        candidate_iban_blank: "A ficha %{code} não tem IBAN (documento %{receipt})."
+        candidate_iban_invalid: "O IBAN da ficha %{code} é inválido (documento %{receipt})."
+        card:
+          blank: "Indique a ficha do terceiro."
+          unknown: "Nenhuma ficha tem o código %{code}."
+          frozen: "O terceiro de um pagamento obtido de um lançamento não pode ser alterado."
+        mandate:
+          none: "A ficha %{code} não tem uma autorização de débito direto ativa."
+        amount:
+          positive: "O montante deve ser positivo."
+          too_large: "O montante excede o limite de um pagamento SEPA."
+          cents: "O montante não pode ter mais de duas casas decimais."
+          over_open: "O montante excede o valor em aberto (%{amount})."
+        remittance:
+          too_long: "A comunicação não deve exceder %{max} caracteres."
+        amount_invalid: "Pagamento n.º %{position} (%{name}): montante inválido."
+        name:
+          blank: "Pagamento n.º %{position}: o nome do terceiro está vazio."
+        charset: "Pagamento n.º %{position} (%{name}): caracteres fora do conjunto SEPA."
+        line_closed: "Pagamento n.º %{position} (%{name}): o documento %{receipt} já não está em aberto (liquidado ou conciliado entretanto)."
+        iban_blank: "Pagamento n.º %{position} (%{name}): IBAN em falta."
+        iban_invalid: "Pagamento n.º %{position} (%{name}): IBAN inválido."
+        bic_invalid: "Pagamento n.º %{position} (%{name}): BIC inválido."
+        mandate_inactive: "Pagamento n.º %{position} (%{name}): a autorização de débito já não está ativa."
+        mandate_not_signed: "Pagamento n.º %{position} (%{name}): a autorização de débito foi assinada depois da data de vencimento."
+        mandate_expired: "Pagamento n.º %{position} (%{name}): autorização de débito caducada desde %{date} (36 meses sem débitos)."
+      mandate:
+        card:
+          blank: "Indique a ficha do cliente."
+          unknown: "Nenhuma ficha tem o código %{code}."
+          frozen: "O cliente de uma autorização de débito já utilizada não pode ser alterado."
+        rum:
+          invalid: "A referência da autorização (RUM) tem no máximo 35 caracteres do conjunto SEPA, sem «/» no início, no fim ou duplicada."
+          taken: "Já existe uma autorização de débito com esta referência (RUM)."
+          frozen: "A referência (RUM) de uma autorização de débito já utilizada não pode ser alterada."
+        signed_on:
+          future: "A data de assinatura não pode ser futura."
+        debtor_name:
+          blank: "Indique o nome do devedor."
+        kind:
+          frozen: "A natureza de uma autorização de débito já utilizada não pode ser alterada."
+        not_active: "Esta autorização de débito já não está ativa."
+        in_use: "Esta autorização de débito já serviu para um pagamento: revogue-a em vez disso."
+      approval:
+        not_prepared: "Só um lote preparado pode ser aprovado."
+        not_submitted: "Este lote não tem nenhum pedido de aprovação pendente: reabra-o e prepare-o de novo."
+        changed: "O lote foi alterado desde a sua submissão (pagamentos, conta bancária ou ICS): reabra-o e prepare-o de novo."
+        attachment_permission: "Aprovar um lote gera o seu ficheiro: é também necessária a permissão para guardar anexos."
+        forbidden: "Este lote não está acessível (diário ou lançamentos): não é possível aprová-lo."
+      file:
+        invalid: "O ficheiro gerado não está conforme: %{detail}."
+      issue:
+        not_approved: "Só um lote aprovado pode ser confirmado como emitido."
+        future: "A data de emissão não pode ser futura."
+      settlement:
+        not_issued: "As liquidações são lançadas depois de o lote ser emitido."

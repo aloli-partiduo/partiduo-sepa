@@ -80,7 +80,7 @@ src/
     ├── services/                # codes, jeu de caractères, calendrier, lots, mandats, règlements (interne)
     ├── xml/                     # production pain.001 / pain.008, contrôle structurel, XSD par libxml2
     ├── api/                     # contrat public Sepa::Api
-    └── locales/                 # fr, en, nl
+    └── locales/                 # fr, en, nl, de, es, it, pt
 ui/
 └── bulma/                       # interface pour partiduo-ui-bulma (application « sepa_ui »)
     ├── bulma.cr                 # routes sous /ext/SEPA/, compteur du menu

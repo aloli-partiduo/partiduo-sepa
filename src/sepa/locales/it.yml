@@ -1,0 +1,146 @@
+it:
+  sepa:
+    module:
+      name: "Pagamenti SEPA"
+    permissions:
+      read: "Consultare le distinte di pagamento SEPA, i mandati e i file"
+      prepare: "Comporre, preparare, riaprire ed eliminare le distinte di pagamento SEPA"
+      approve: "Approvare le distinte SEPA, generare il file, confermare l'emissione e registrare i regolamenti"
+      admin: "Configurare i pagamenti SEPA e gestire i mandati di addebito diretto"
+    menu:
+      sepa: "Pagamenti SEPA"
+      sepa_batches: "Distinte di pagamento"
+      sepa_new: "Nuova distinta"
+      sepa_mandates: "Mandati di addebito diretto"
+      sepa_settings: "Pagamenti SEPA"
+    kinds:
+      transfer: "Bonifici"
+      debit: "Addebiti diretti"
+    statuses:
+      draft: "In preparazione"
+      prepared: "Da approvare"
+      approved: "Approvata, da emettere"
+      issued: "Emessa"
+    approval_modes:
+      single: "Una persona"
+      dual: "Due persone"
+    settlement_modes:
+      post: "Registrare i regolamenti alla conferma dell'emissione"
+      propose: "Proporre i regolamenti, da registrare in seguito"
+    mandate_kinds:
+      recurrent: "Ricorrente"
+      one_off: "Singolo"
+    mandate_statuses:
+      active: "Attivo"
+      revoked: "Revocato"
+      used: "Utilizzato"
+    sequences:
+      FRST: "Primo (FRST)"
+      RCUR: "Ricorrente (RCUR)"
+      OOFF: "Singolo (OOFF)"
+    settlements:
+      none: "Regolamento da registrare"
+      posted: "Regolamento registrato"
+      elsewhere: "Regolato altrove"
+    approval:
+      summary: "Distinta SEPA n. %{id}: %{kind} al %{date}"
+      details:
+        kind: "Tipo"
+        ledger: "Giornale finanziario"
+        requested_on: "Data di esecuzione o di scadenza"
+        count: "Pagamenti"
+        schema: "Formato"
+    errors:
+      choice:
+        invalid: "Valore non ammesso: %{value}."
+      ledger:
+        blank: "Scelga un giornale finanziario."
+        invalid: "Questo giornale non è un giornale finanziario a Lei accessibile."
+        currency: "Il giornale è tenuto in %{currency}: i pagamenti SEPA sono in euro."
+        iban_blank: "La scheda Banca del giornale %{code} non ha un IBAN."
+        iban_invalid: "L'IBAN della scheda Banca del giornale %{code} non è valido."
+        bic_invalid: "Il BIC della scheda Banca del giornale %{code} non è valido."
+      company:
+        name_blank: "Inserisca la ragione sociale del dossier: identifica l'ordinante."
+      batch:
+        debit_household: "Un dossier di nucleo familiare non emette addebiti diretti."
+        label:
+          too_long: "La descrizione non deve superare %{max} caratteri."
+        empty: "La distinta non contiene alcun pagamento."
+        too_many: "Una distinta non può superare %{max} pagamenti."
+        kind_frozen: "Il tipo di una distinta che contiene pagamenti non può più cambiare."
+        not_draft: "Questa distinta non è più in preparazione: la riapra per modificarla."
+        not_deletable: "Una distinta approvata va riaperta prima di essere eliminata; una distinta emessa è conservata."
+        not_reopenable: "Si può riaprire solo una distinta preparata o approvata, non emessa."
+      date:
+        past: "La data di esecuzione non può essere passata."
+        too_soon: "Un addebito diretto si presenta al più presto il giorno lavorativo successivo."
+        not_business_day: "Questo giorno non è lavorativo per i pagamenti SEPA; prossimo giorno lavorativo: %{next}."
+        too_far: "La data di esecuzione è oltre un anno."
+      settings:
+        ics_blank: "Inserisca l'identificativo creditore SEPA (ICS) nella configurazione della società."
+        ics_invalid: "L'identificativo creditore SEPA (ICS) non è valido."
+      iban:
+        blank: "Indichi l'IBAN."
+        invalid: "IBAN non valido (paese, lunghezza o codice di controllo)."
+      bic:
+        invalid: "BIC non valido (8 o 11 caratteri)."
+      item:
+        none_selected: "Selezioni almeno una registrazione."
+        line_unavailable: "La registrazione %{id} non è più aperta o è già in una distinta."
+        candidate_iban_blank: "La scheda %{code} non ha un IBAN (documento %{receipt})."
+        candidate_iban_invalid: "L'IBAN della scheda %{code} non è valido (documento %{receipt})."
+        card:
+          blank: "Indichi la scheda del terzo."
+          unknown: "Nessuna scheda ha il codice %{code}."
+          frozen: "Il terzo di un pagamento tratto da una registrazione non cambia."
+        mandate:
+          none: "La scheda %{code} non ha un mandato di addebito diretto attivo."
+        amount:
+          positive: "L'importo deve essere positivo."
+          too_large: "L'importo supera il massimale di un pagamento SEPA."
+          cents: "L'importo si ferma al centesimo."
+          over_open: "L'importo supera il residuo aperto (%{amount})."
+        remittance:
+          too_long: "La causale non deve superare %{max} caratteri."
+        amount_invalid: "Pagamento n. %{position} (%{name}): importo non valido."
+        name:
+          blank: "Pagamento n. %{position}: il nome del terzo è vuoto."
+        charset: "Pagamento n. %{position} (%{name}): caratteri al di fuori del set SEPA."
+        line_closed: "Pagamento n. %{position} (%{name}): il documento %{receipt} non è più aperto (regolato o abbinato nel frattempo)."
+        iban_blank: "Pagamento n. %{position} (%{name}): IBAN assente."
+        iban_invalid: "Pagamento n. %{position} (%{name}): IBAN non valido."
+        bic_invalid: "Pagamento n. %{position} (%{name}): BIC non valido."
+        mandate_inactive: "Pagamento n. %{position} (%{name}): il mandato non è più attivo."
+        mandate_not_signed: "Pagamento n. %{position} (%{name}): il mandato è firmato dopo la data di scadenza."
+        mandate_expired: "Pagamento n. %{position} (%{name}): mandato scaduto dal %{date} (36 mesi senza addebiti)."
+      mandate:
+        card:
+          blank: "Indichi la scheda del cliente."
+          unknown: "Nessuna scheda ha il codice %{code}."
+          frozen: "Il cliente di un mandato già addebitato non cambia."
+        rum:
+          invalid: "Il riferimento del mandato (RUM) conta al massimo 35 caratteri del set SEPA, senza «/» all'inizio, alla fine o doppio."
+          taken: "Esiste già un mandato con questo riferimento (RUM)."
+          frozen: "Il riferimento (RUM) di un mandato già addebitato non cambia."
+        signed_on:
+          future: "La data di firma non può essere futura."
+        debtor_name:
+          blank: "Indichi il nome del debitore."
+        kind:
+          frozen: "La natura di un mandato già addebitato non cambia."
+        not_active: "Questo mandato non è più attivo."
+        in_use: "Questo mandato è servito per un pagamento: lo revochi piuttosto."
+      approval:
+        not_prepared: "Si può approvare solo una distinta preparata."
+        not_submitted: "Questa distinta non ha una richiesta di approvazione in attesa: la riapra e poi la prepari di nuovo."
+        changed: "La distinta è cambiata dopo l'invio in approvazione (pagamenti, conto bancario o ICS): la riapra e poi la prepari di nuovo."
+        attachment_permission: "Approvare una distinta ne genera il file: serve anche l'autorizzazione a salvare allegati."
+        forbidden: "Questa distinta non Le è accessibile (giornale o registrazioni): non può approvarla."
+      file:
+        invalid: "Il file generato non è conforme: %{detail}."
+      issue:
+        not_approved: "Si può confermare come emessa solo una distinta approvata."
+        future: "La data di emissione non può essere futura."
+      settlement:
+        not_issued: "I regolamenti si registrano una volta emessa la distinta."

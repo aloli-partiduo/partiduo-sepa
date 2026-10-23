@@ -1,0 +1,146 @@
+es:
+  sepa:
+    module:
+      name: "Pagos SEPA"
+    permissions:
+      read: "Consultar las remesas de pagos SEPA, los mandatos y los ficheros"
+      prepare: "Componer, preparar, reabrir y eliminar las remesas de pagos SEPA"
+      approve: "Aprobar las remesas SEPA, generar el fichero, confirmar la emisión y registrar los cobros y pagos"
+      admin: "Configurar los pagos SEPA y gestionar los mandatos de adeudo directo"
+    menu:
+      sepa: "Pagos SEPA"
+      sepa_batches: "Remesas de pagos"
+      sepa_new: "Nueva remesa"
+      sepa_mandates: "Mandatos de adeudo"
+      sepa_settings: "Pagos SEPA"
+    kinds:
+      transfer: "Transferencias"
+      debit: "Adeudos directos"
+    statuses:
+      draft: "En preparación"
+      prepared: "Por aprobar"
+      approved: "Aprobada, por emitir"
+      issued: "Emitida"
+    approval_modes:
+      single: "Una persona"
+      dual: "Dos personas"
+    settlement_modes:
+      post: "Registrar los cobros y pagos al confirmar la emisión"
+      propose: "Proponer los cobros y pagos, para registrarlos después"
+    mandate_kinds:
+      recurrent: "Recurrente"
+      one_off: "Único"
+    mandate_statuses:
+      active: "Activo"
+      revoked: "Revocado"
+      used: "Utilizado"
+    sequences:
+      FRST: "Primero (FRST)"
+      RCUR: "Recurrente (RCUR)"
+      OOFF: "Único (OOFF)"
+    settlements:
+      none: "Pago por registrar"
+      posted: "Pago registrado"
+      elsewhere: "Liquidado en otro lugar"
+    approval:
+      summary: "Remesa SEPA n.º %{id}: %{kind} al %{date}"
+      details:
+        kind: "Tipo"
+        ledger: "Diario financiero"
+        requested_on: "Fecha de ejecución o de vencimiento"
+        count: "Pagos"
+        schema: "Formato"
+    errors:
+      choice:
+        invalid: "Valor no admitido: %{value}."
+      ledger:
+        blank: "Elija un diario financiero."
+        invalid: "Este diario no es un diario financiero que le esté abierto."
+        currency: "El diario se lleva en %{currency}: los pagos SEPA son en euros."
+        iban_blank: "La ficha Banco del diario %{code} no tiene IBAN."
+        iban_invalid: "El IBAN de la ficha Banco del diario %{code} no es válido."
+        bic_invalid: "El BIC de la ficha Banco del diario %{code} no es válido."
+      company:
+        name_blank: "Indique la razón social del expediente: designa al ordenante."
+      batch:
+        debit_household: "Un expediente de hogar no emite adeudos directos."
+        label:
+          too_long: "La descripción no debe superar %{max} caracteres."
+        empty: "La remesa no contiene ningún pago."
+        too_many: "Una remesa no puede superar %{max} pagos."
+        kind_frozen: "El tipo de una remesa que contiene pagos ya no se puede cambiar."
+        not_draft: "Esta remesa ya no está en preparación: reábrala para modificarla."
+        not_deletable: "Una remesa aprobada se reabre antes de eliminarse; una remesa emitida se conserva."
+        not_reopenable: "Solo se puede reabrir una remesa preparada o aprobada, no emitida."
+      date:
+        past: "La fecha de ejecución no puede ser pasada."
+        too_soon: "Un adeudo directo se presenta como pronto el siguiente día hábil."
+        not_business_day: "Este día no es hábil para los pagos SEPA; siguiente día hábil: %{next}."
+        too_far: "La fecha de ejecución es posterior a un año."
+      settings:
+        ics_blank: "Indique el identificador de acreedor SEPA (ICS) en la configuración de la empresa."
+        ics_invalid: "El identificador de acreedor SEPA (ICS) no es válido."
+      iban:
+        blank: "Indique el IBAN."
+        invalid: "IBAN no válido (país, longitud o dígito de control)."
+      bic:
+        invalid: "BIC no válido (8 u 11 caracteres)."
+      item:
+        none_selected: "Marque al menos un asiento."
+        line_unavailable: "El asiento %{id} ya no está abierto o ya está en una remesa."
+        candidate_iban_blank: "La ficha %{code} no tiene IBAN (documento %{receipt})."
+        candidate_iban_invalid: "El IBAN de la ficha %{code} no es válido (documento %{receipt})."
+        card:
+          blank: "Indique la ficha del tercero."
+          unknown: "Ninguna ficha tiene el código %{code}."
+          frozen: "El tercero de un pago generado a partir de un asiento no se puede cambiar."
+        mandate:
+          none: "La ficha %{code} no tiene ningún mandato de adeudo activo."
+        amount:
+          positive: "El importe debe ser positivo."
+          too_large: "El importe supera el límite de un pago SEPA."
+          cents: "El importe se detiene en el céntimo."
+          over_open: "El importe supera lo que queda pendiente (%{amount})."
+        remittance:
+          too_long: "El concepto no debe superar %{max} caracteres."
+        amount_invalid: "Pago n.º %{position} (%{name}): importe no válido."
+        name:
+          blank: "Pago n.º %{position}: el nombre del tercero está vacío."
+        charset: "Pago n.º %{position} (%{name}): caracteres fuera del juego SEPA."
+        line_closed: "Pago n.º %{position} (%{name}): el documento %{receipt} ya no está abierto (liquidado o punteado entretanto)."
+        iban_blank: "Pago n.º %{position} (%{name}): falta el IBAN."
+        iban_invalid: "Pago n.º %{position} (%{name}): IBAN no válido."
+        bic_invalid: "Pago n.º %{position} (%{name}): BIC no válido."
+        mandate_inactive: "Pago n.º %{position} (%{name}): el mandato ya no está activo."
+        mandate_not_signed: "Pago n.º %{position} (%{name}): el mandato se firmó después de la fecha de vencimiento."
+        mandate_expired: "Pago n.º %{position} (%{name}): mandato caducado desde el %{date} (36 meses sin adeudos)."
+      mandate:
+        card:
+          blank: "Indique la ficha del cliente."
+          unknown: "Ninguna ficha tiene el código %{code}."
+          frozen: "El cliente de un mandato ya utilizado no se puede cambiar."
+        rum:
+          invalid: "La referencia del mandato (RUM) tiene como máximo 35 caracteres del juego SEPA, sin «/» al principio, al final ni duplicada."
+          taken: "Ya existe un mandato con esta referencia."
+          frozen: "La referencia de un mandato ya utilizado no se puede cambiar."
+        signed_on:
+          future: "La fecha de firma no puede ser futura."
+        debtor_name:
+          blank: "Indique el nombre del deudor."
+        kind:
+          frozen: "La naturaleza de un mandato ya utilizado no se puede cambiar."
+        not_active: "Este mandato ya no está activo."
+        in_use: "Este mandato se ha utilizado para un pago: revóquelo en su lugar."
+      approval:
+        not_prepared: "Solo se puede aprobar una remesa preparada."
+        not_submitted: "Esta remesa no tiene ninguna solicitud de aprobación pendiente: reábrala y vuelva a prepararla."
+        changed: "La remesa ha cambiado desde su envío (pagos, cuenta bancaria o ICS): reábrala y vuelva a prepararla."
+        attachment_permission: "Aprobar una remesa genera su fichero: también se necesita el permiso para guardar adjuntos."
+        forbidden: "Esta remesa no le es accesible (diario o asientos): no puede aprobarla."
+      file:
+        invalid: "El fichero generado no es conforme: %{detail}."
+      issue:
+        not_approved: "Solo se puede confirmar como emitida una remesa aprobada."
+        future: "La fecha de emisión no puede ser futura."
+      settlement:
+        not_issued: "Los cobros y pagos se registran una vez emitida la remesa."

@@ -1,0 +1,146 @@
+de:
+  sepa:
+    module:
+      name: "SEPA-Zahlungen"
+    permissions:
+      read: "SEPA-Zahlungsstapel, Mandate und Dateien einsehen"
+      prepare: "SEPA-Zahlungsstapel zusammenstellen, vorbereiten, wieder öffnen und löschen"
+      approve: "SEPA-Stapel genehmigen, die Datei erzeugen, die Ausführung bestätigen und die Zahlungen buchen"
+      admin: "SEPA-Zahlungen einrichten und Lastschriftmandate verwalten"
+    menu:
+      sepa: "SEPA-Zahlungen"
+      sepa_batches: "Zahlungsstapel"
+      sepa_new: "Neuer Stapel"
+      sepa_mandates: "Lastschriftmandate"
+      sepa_settings: "SEPA-Zahlungen"
+    kinds:
+      transfer: "Überweisungen"
+      debit: "Lastschriften"
+    statuses:
+      draft: "In Vorbereitung"
+      prepared: "Zu genehmigen"
+      approved: "Genehmigt, auszuführen"
+      issued: "Ausgeführt"
+    approval_modes:
+      single: "Eine Person"
+      dual: "Zwei Personen"
+    settlement_modes:
+      post: "Zahlungen bei Bestätigung der Ausführung buchen"
+      propose: "Zahlungen vorschlagen, später zu buchen"
+    mandate_kinds:
+      recurrent: "Wiederkehrend"
+      one_off: "Einmalig"
+    mandate_statuses:
+      active: "Aktiv"
+      revoked: "Widerrufen"
+      used: "Verwendet"
+    sequences:
+      FRST: "Erstlastschrift (FRST)"
+      RCUR: "Folgelastschrift (RCUR)"
+      OOFF: "Einmallastschrift (OOFF)"
+    settlements:
+      none: "Zahlung zu buchen"
+      posted: "Zahlung gebucht"
+      elsewhere: "Anderweitig beglichen"
+    approval:
+      summary: "SEPA-Stapel Nr. %{id}: %{kind} zum %{date}"
+      details:
+        kind: "Art"
+        ledger: "Finanzjournal"
+        requested_on: "Ausführungs- oder Fälligkeitsdatum"
+        count: "Zahlungen"
+        schema: "Format"
+    errors:
+      choice:
+        invalid: "Unzulässiger Wert: %{value}."
+      ledger:
+        blank: "Wählen Sie ein Finanzjournal."
+        invalid: "Dieses Journal ist kein für Sie freigegebenes Finanzjournal."
+        currency: "Das Journal wird in %{currency} geführt: SEPA-Zahlungen erfolgen in Euro."
+        iban_blank: "Der Stammsatz Bank des Journals %{code} hat keine IBAN."
+        iban_invalid: "Die IBAN im Stammsatz Bank des Journals %{code} ist ungültig."
+        bic_invalid: "Die BIC im Stammsatz Bank des Journals %{code} ist ungültig."
+      company:
+        name_blank: "Geben Sie den Firmennamen des Mandanten an: Er bezeichnet den Auftraggeber."
+      batch:
+        debit_household: "Ein Haushalt zieht keine Lastschriften ein."
+        label:
+          too_long: "Die Bezeichnung darf höchstens %{max} Zeichen lang sein."
+        empty: "Der Stapel enthält keine Zahlung."
+        too_many: "Ein Stapel darf höchstens %{max} Zahlungen enthalten."
+        kind_frozen: "Die Art eines Stapels mit Zahlungen kann nicht mehr geändert werden."
+        not_draft: "Dieser Stapel ist nicht mehr in Vorbereitung: Öffnen Sie ihn wieder, um ihn zu ändern."
+        not_deletable: "Ein genehmigter Stapel muss vor dem Löschen wieder geöffnet werden; ein ausgeführter Stapel bleibt erhalten."
+        not_reopenable: "Nur ein vorbereiteter oder genehmigter, nicht ausgeführter Stapel kann wieder geöffnet werden."
+      date:
+        past: "Das Ausführungsdatum darf nicht in der Vergangenheit liegen."
+        too_soon: "Eine Lastschrift kann frühestens am nächsten Geschäftstag vorgelegt werden."
+        not_business_day: "Dieser Tag ist kein Geschäftstag für SEPA-Zahlungen; nächster Geschäftstag: %{next}."
+        too_far: "Das Ausführungsdatum liegt mehr als ein Jahr in der Zukunft."
+      settings:
+        ics_blank: "Geben Sie die SEPA-Gläubiger-Identifikationsnummer (ICS) in der Unternehmenskonfiguration an."
+        ics_invalid: "Die SEPA-Gläubiger-Identifikationsnummer (ICS) ist ungültig."
+      iban:
+        blank: "Geben Sie die IBAN an."
+        invalid: "Ungültige IBAN (Land, Länge oder Prüfziffer)."
+      bic:
+        invalid: "Ungültige BIC (8 oder 11 Zeichen)."
+      item:
+        none_selected: "Markieren Sie mindestens eine Buchung."
+        line_unavailable: "Die Buchung %{id} ist nicht mehr offen oder bereits in einem Stapel."
+        candidate_iban_blank: "Der Stammsatz %{code} hat keine IBAN (Beleg %{receipt})."
+        candidate_iban_invalid: "Die IBAN des Stammsatzes %{code} ist ungültig (Beleg %{receipt})."
+        card:
+          blank: "Geben Sie den Stammsatz des Geschäftspartners an."
+          unknown: "Kein Stammsatz hat den Code %{code}."
+          frozen: "Der Geschäftspartner einer aus einer Buchung erzeugten Zahlung kann nicht geändert werden."
+        mandate:
+          none: "Der Stammsatz %{code} hat kein aktives Lastschriftmandat."
+        amount:
+          positive: "Der Betrag muss positiv sein."
+          too_large: "Der Betrag überschreitet die Höchstgrenze einer SEPA-Zahlung."
+          cents: "Der Betrag endet beim Cent."
+          over_open: "Der Betrag übersteigt den offenen Rest (%{amount})."
+        remittance:
+          too_long: "Der Verwendungszweck darf höchstens %{max} Zeichen lang sein."
+        amount_invalid: "Zahlung Nr. %{position} (%{name}): ungültiger Betrag."
+        name:
+          blank: "Zahlung Nr. %{position}: Der Name des Geschäftspartners ist leer."
+        charset: "Zahlung Nr. %{position} (%{name}): Zeichen außerhalb des SEPA-Zeichensatzes."
+        line_closed: "Zahlung Nr. %{position} (%{name}): Der Beleg %{receipt} ist nicht mehr offen (inzwischen beglichen oder ausgeglichen)."
+        iban_blank: "Zahlung Nr. %{position} (%{name}): IBAN fehlt."
+        iban_invalid: "Zahlung Nr. %{position} (%{name}): ungültige IBAN."
+        bic_invalid: "Zahlung Nr. %{position} (%{name}): ungültige BIC."
+        mandate_inactive: "Zahlung Nr. %{position} (%{name}): Das Mandat ist nicht mehr aktiv."
+        mandate_not_signed: "Zahlung Nr. %{position} (%{name}): Das Mandat wurde nach dem Fälligkeitsdatum unterzeichnet."
+        mandate_expired: "Zahlung Nr. %{position} (%{name}): Mandat seit dem %{date} verfallen (36 Monate ohne Lastschrift)."
+      mandate:
+        card:
+          blank: "Geben Sie den Stammsatz des Kunden an."
+          unknown: "Kein Stammsatz hat den Code %{code}."
+          frozen: "Der Kunde eines bereits genutzten Mandats kann nicht geändert werden."
+        rum:
+          invalid: "Die Mandatsreferenz (RUM) hat höchstens 35 Zeichen des SEPA-Zeichensatzes, ohne „/“ am Anfang, am Ende oder doppelt."
+          taken: "Ein Mandat hat bereits diese Mandatsreferenz."
+          frozen: "Die Mandatsreferenz eines bereits genutzten Mandats kann nicht geändert werden."
+        signed_on:
+          future: "Das Unterschriftsdatum darf nicht in der Zukunft liegen."
+        debtor_name:
+          blank: "Geben Sie den Namen des Zahlungspflichtigen an."
+        kind:
+          frozen: "Die Art eines bereits genutzten Mandats kann nicht geändert werden."
+        not_active: "Dieses Mandat ist nicht mehr aktiv."
+        in_use: "Dieses Mandat wurde für eine Zahlung verwendet: Widerrufen Sie es stattdessen."
+      approval:
+        not_prepared: "Nur ein vorbereiteter Stapel kann genehmigt werden."
+        not_submitted: "Für diesen Stapel liegt keine offene Genehmigungsanfrage vor: Öffnen Sie ihn wieder und bereiten Sie ihn erneut vor."
+        changed: "Der Stapel wurde seit der Einreichung geändert (Zahlungen, Bankkonto oder ICS): Öffnen Sie ihn wieder und bereiten Sie ihn erneut vor."
+        attachment_permission: "Das Genehmigen eines Stapels erzeugt seine Datei: Dafür ist auch die Berechtigung zum Speichern von Anhängen erforderlich."
+        forbidden: "Dieser Stapel ist für Sie nicht zugänglich (Journal oder Buchungen): Sie können ihn nicht genehmigen."
+      file:
+        invalid: "Die erzeugte Datei ist nicht konform: %{detail}."
+      issue:
+        not_approved: "Nur ein genehmigter Stapel kann als ausgeführt bestätigt werden."
+        future: "Das Ausführungsdatum darf nicht in der Zukunft liegen."
+      settlement:
+        not_issued: "Die Zahlungen werden gebucht, sobald der Stapel ausgeführt ist."
